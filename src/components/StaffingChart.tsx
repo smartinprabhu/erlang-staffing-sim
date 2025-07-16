@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConfigurationData } from "./ContactCenterApp";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend, Bar, ComposedChart } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend, Bar, ComposedChart, Tooltip, Cell } from "recharts";
 
 interface StaffingChartProps {
   volumeMatrix: number[][];
@@ -15,9 +15,7 @@ export function StaffingChart({ volumeMatrix, rosterGrid, configData }: Staffing
     const intervalIndex = i * 2; // Convert hour to interval index
     
     // Calculate actual staffing from roster
-    const actualStaffing = rosterGrid.reduce((count, agent) => {
-      return count + (agent[intervalIndex] === "S" ? 1 : 0);
-    }, 0);
+    const actualStaffing = rosterGrid.length > 0 ? (parseInt(rosterGrid[0][intervalIndex]) || 0) : 0;
     
     // Calculate required staffing (simplified Erlang-C approximation)
     const volume = volumeMatrix[0]?.[intervalIndex] || 0;
@@ -29,7 +27,8 @@ export function StaffingChart({ volumeMatrix, rosterGrid, configData }: Staffing
       hour: `${hour.toString().padStart(2, '0')}:00`,
       actual: actualStaffing,
       required: requiredStaffing,
-      difference: difference
+      difference: difference,
+      fill: difference >= 0 ? "hsl(var(--chart-green))" : "hsl(var(--chart-orange))"
     };
   });
 
@@ -55,6 +54,13 @@ export function StaffingChart({ volumeMatrix, rosterGrid, configData }: Staffing
                 stroke="hsl(var(--foreground))"
                 fontSize={12}
               />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: "hsl(var(--card))", 
+                  border: "1px solid hsl(var(--border))",
+                  borderRadius: "8px"
+                }}
+              />
               <Legend />
               <Line 
                 type="monotone" 
@@ -75,10 +81,16 @@ export function StaffingChart({ volumeMatrix, rosterGrid, configData }: Staffing
               />
               <Bar 
                 dataKey="difference" 
-                fill="hsl(var(--chart-orange))"
                 name="Difference"
                 opacity={0.7}
-              />
+              >
+                {chartData.map((entry, index) => (
+                  <Cell 
+                    key={`cell-${index}`} 
+                    fill={entry.difference >= 0 ? "hsl(var(--chart-green))" : "hsl(var(--chart-orange))"} 
+                  />
+                ))}
+              </Bar>
             </ComposedChart>
           </ResponsiveContainer>
         </div>
@@ -92,8 +104,12 @@ export function StaffingChart({ volumeMatrix, rosterGrid, configData }: Staffing
             <span>Required - Count needed based on Erlang-C</span>
           </div>
           <div className="flex items-center gap-2">
+            <div className="w-3 h-3 bg-chart-green rounded-full" />
+            <span>Positive Difference - Overstaffing</span>
+          </div>
+          <div className="flex items-center gap-2">
             <div className="w-3 h-3 bg-chart-orange rounded-full" />
-            <span>Difference - Positive = overstaffing, Negative = understaffing</span>
+            <span>Negative Difference - Understaffing</span>
           </div>
         </div>
       </CardContent>

@@ -16,12 +16,13 @@ export function VolumeMatrixGrid({ volumeMatrix, onVolumeMatrixChange, weeks }: 
     return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
   });
 
-  const generateSampleData = () => {
-    const matrix = Array(days).fill(0).map(() => 
+  // Initialize with default values if empty
+  if (volumeMatrix.length === 0) {
+    const defaultMatrix = Array(days).fill(0).map(() => 
       Array(48).fill(0).map(() => Math.floor(Math.random() * 100) + 20)
     );
-    onVolumeMatrixChange(matrix);
-  };
+    onVolumeMatrixChange(defaultMatrix);
+  }
 
   const clearData = () => {
     onVolumeMatrixChange([]);
@@ -40,7 +41,7 @@ export function VolumeMatrixGrid({ volumeMatrix, onVolumeMatrixChange, weeks }: 
               Total Days: {days} ({weeks} weeks)
             </span>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={generateSampleData}>
+              <Button variant="outline" size="sm">
                 <Download className="h-4 w-4 mr-2" />
                 Export CSV
               </Button>
@@ -56,10 +57,10 @@ export function VolumeMatrixGrid({ volumeMatrix, onVolumeMatrixChange, weeks }: 
         </p>
       </CardHeader>
       <CardContent>
-        <div className="overflow-x-auto">
-          <div className="inline-block min-w-full">
-            <table className="w-full border-collapse">
-              <thead>
+        <div className="overflow-auto max-h-96">
+          <div className="min-w-full">
+            <table className="w-full border-collapse text-sm">
+              <thead className="sticky top-0 bg-card z-10">
                 <tr>
                   <th className="sticky left-0 bg-card border border-border p-2 text-left min-w-20">
                     TIME<br />INTERVAL
@@ -69,7 +70,7 @@ export function VolumeMatrixGrid({ volumeMatrix, onVolumeMatrixChange, weeks }: 
                     date.setDate(date.getDate() + i);
                     const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
                     return (
-                      <th key={i} className="border border-border p-2 text-center min-w-16">
+                      <th key={i} className="border border-border p-2 text-center min-w-16 bg-card">
                         <div className="text-xs font-medium">{dayNames[date.getDay()]}</div>
                         <div className="text-xs text-muted-foreground">
                           {date.getDate().toString().padStart(2, '0')}/{(date.getMonth() + 1).toString().padStart(2, '0')}
@@ -83,7 +84,7 @@ export function VolumeMatrixGrid({ volumeMatrix, onVolumeMatrixChange, weeks }: 
                 </tr>
               </thead>
               <tbody>
-                {intervals.slice(0, 10).map((interval, i) => (
+                {intervals.map((interval, i) => (
                   <tr key={i}>
                     <td className="sticky left-0 bg-card border border-border p-2 text-sm font-medium">
                       {interval}

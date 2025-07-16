@@ -35,29 +35,19 @@ export function RosterGrid({ rosterGrid, onRosterGridChange }: RosterGridProps) 
     };
   });
 
-  // Initialize roster values if empty
-  const rosterValues = rosterGrid.length > 0 ? rosterGrid[0] : Array(48).fill('');
-  
   // Initialize with default values if empty
-  const initializeDefaultValues = () => {
-    if (rosterGrid.length === 0) {
-      // Default roster pattern: higher staffing during business hours
-      const defaultRoster = Array.from({ length: 48 }, (_, i) => {
-        const hour = Math.floor(i / 2);
-        if (hour >= 8 && hour <= 17) {
-          return '5'; // Business hours
-        } else if (hour >= 6 && hour <= 20) {
-          return '2'; // Extended hours
-        }
-        return '0'; // Off hours
-      });
-      onRosterGridChange([defaultRoster]);
-    }
-  };
-
-  // Initialize on component mount
   if (rosterGrid.length === 0) {
-    initializeDefaultValues();
+    // Default roster pattern: higher staffing during business hours
+    const defaultRoster = Array.from({ length: 48 }, (_, i) => {
+      const hour = Math.floor(i / 2);
+      if (hour >= 8 && hour <= 17) {
+        return '5'; // Business hours
+      } else if (hour >= 6 && hour <= 20) {
+        return '2'; // Extended hours
+      }
+      return '0'; // Off hours
+    });
+    onRosterGridChange([defaultRoster]);
   }
 
   const updateRosterValue = (intervalIndex: number, value: string) => {
@@ -164,17 +154,13 @@ export function RosterGrid({ rosterGrid, onRosterGridChange }: RosterGridProps) 
                           
                           return (
                             <td key={dayIndex} className="border border-border p-1 text-center">
-                              {dayIndex === 0 ? (
-                                <input
-                                  type="text"
-                                  className="w-full bg-transparent border-none text-center text-sm"
-                                  value={cellValue}
-                                  onChange={(e) => updateRosterValue(intervalIndex, e.target.value)}
-                                  placeholder="0"
-                                />
-                              ) : (
-                                <span className="text-sm">{cellValue}</span>
-                              )}
+                              <input
+                                type="text"
+                                className="w-full bg-transparent border-none text-center text-sm"
+                                value={cellValue}
+                                onChange={(e) => updateRosterValue(intervalIndex, e.target.value)}
+                                placeholder="0"
+                              />
                             </td>
                           );
                         })}
@@ -214,6 +200,14 @@ function VolumeTable() {
       date: `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}`
     };
   });
+
+  // Initialize with default values if empty
+  if (volumeData.length === 0) {
+    const defaultData = Array(14).fill(0).map(() => 
+      Array(48).fill(0).map(() => Math.floor(Math.random() * 100) + 20)
+    );
+    setVolumeData(defaultData);
+  }
 
   const updateVolumeValue = (dayIndex: number, intervalIndex: number, value: string) => {
     const newData = [...volumeData];

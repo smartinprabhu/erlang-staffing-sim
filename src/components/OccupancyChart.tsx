@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SimulationResults } from "./ContactCenterApp";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, ReferenceLine, BarChart, Bar } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, ReferenceLine, BarChart, Bar, Tooltip } from "recharts";
 import { TrendingUp, AlertTriangle } from "lucide-react";
 
 interface OccupancyChartProps {
@@ -76,6 +76,13 @@ export function OccupancyChart({ results }: OccupancyChartProps) {
                       fontSize={10}
                       domain={[0, 100]}
                     />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: "hsl(var(--card))", 
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: "8px"
+                      }}
+                    />
                     <ReferenceLine 
                       y={75} 
                       stroke="hsl(var(--chart-green))" 
@@ -115,6 +122,13 @@ export function OccupancyChart({ results }: OccupancyChartProps) {
                       stroke="hsl(var(--foreground))"
                       fontSize={10}
                       domain={[0, 100]}
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: "hsl(var(--card))", 
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: "8px"
+                      }}
                     />
                     <Bar 
                       dataKey="occupancy" 
