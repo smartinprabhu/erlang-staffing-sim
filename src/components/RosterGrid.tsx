@@ -7,9 +7,14 @@ import { Users, Calendar, RotateCcw } from "lucide-react";
 interface RosterGridProps {
   rosterGrid: string[][];
   onRosterGridChange: (grid: string[][]) => void;
+  volumeMatrix: number[][];
+  onVolumeMatrixChange: (matrix: number[][]) => void;
+  weeks: 4 | 8 | 12;
+  fromDate: string;
+  toDate: string;
 }
 
-export function RosterGrid({ rosterGrid, onRosterGridChange }: RosterGridProps) {
+export function RosterGrid({ rosterGrid, onRosterGridChange, volumeMatrix, onVolumeMatrixChange, weeks, fromDate, toDate }: RosterGridProps) {
   const [activeTab, setActiveTab] = useState("roster");
   
   // Generate all 48 intervals (00:00 to 23:30)
@@ -23,9 +28,10 @@ export function RosterGrid({ rosterGrid, onRosterGridChange }: RosterGridProps) 
     };
   });
 
-  // Generate days (showing 14 days for this example)
-  const days = Array.from({ length: 14 }, (_, i) => {
-    const date = new Date('2025-06-29');
+  // Generate days based on date range
+  const totalDays = weeks * 7;
+  const days = Array.from({ length: totalDays }, (_, i) => {
+    const date = new Date(fromDate);
     date.setDate(date.getDate() + i);
     const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     return {
@@ -35,29 +41,21 @@ export function RosterGrid({ rosterGrid, onRosterGridChange }: RosterGridProps) 
     };
   });
 
-  // Initialize roster values if empty
-  const rosterValues = rosterGrid.length > 0 ? rosterGrid[0] : Array(48).fill('');
-  
   // Initialize with default values if empty
-  const initializeDefaultValues = () => {
-    if (rosterGrid.length === 0) {
-      // Default roster pattern: higher staffing during business hours
-      const defaultRoster = Array.from({ length: 48 }, (_, i) => {
-        const hour = Math.floor(i / 2);
-        if (hour >= 8 && hour <= 17) {
-          return '5'; // Business hours
-        } else if (hour >= 6 && hour <= 20) {
-          return '2'; // Extended hours
-        }
-        return '0'; // Off hours
-      });
-      onRosterGridChange([defaultRoster]);
-    }
-  };
-
-  // Initialize on component mount
   if (rosterGrid.length === 0) {
-    initializeDefaultValues();
+    // Default roster pattern: 17 hours shift (6:00 AM to 11:00 PM)
+    const defaultRoster = Array.from({ length: 48 }, (_, i) => {
+      const hour = Math.floor(i / 2);
+      if (hour >= 6 && hour <= 22) { // 17 hours: 6:00 AM to 11:00 PM
+        if (hour >= 8 && hour <= 18) {
+          return String(Math.floor(Math.random() * 8) + 12); // Peak hours: 12-20 agents
+        } else {
+          return String(Math.floor(Math.random() * 5) + 3); // Off-peak: 3-8 agents
+        }
+      }
+      return '0'; // Off hours
+    });
+    onRosterGridChange([defaultRoster]);
   }
 
   const updateRosterValue = (intervalIndex: number, value: string) => {
@@ -73,8 +71,8 @@ export function RosterGrid({ rosterGrid, onRosterGridChange }: RosterGridProps) 
     onRosterGridChange([Array(48).fill('')]);
   };
 
-  // Calculate shift count (non-empty values)
-  const calculateShiftCount = (dayIndex: number) => {
+  // Calculate shift count (non-empty values) - should be 17 hours
+  const calculateShiftCount = () => {
     if (rosterGrid.length === 0) return 0;
     return intervals.reduce((count, _, intervalIndex) => {
       const value = rosterGrid[0][intervalIndex];
@@ -141,16 +139,16 @@ export function RosterGrid({ rosterGrid, onRosterGridChange }: RosterGridProps) 
                     </tr>
                     
                     {/* Shift Count Row */}
-                    <tr>
-                      <td className="border border-border p-2 font-medium">
-                        Shift
-                      </td>
-                      {days.map((_, dayIndex) => (
-                        <td key={dayIndex} className="border border-border p-2 text-center">
-                          <span className="text-sm">17</span>
-                        </td>
-                      ))}
-                    </tr>
+                     <tr>
+                       <td className="border border-border p-2 font-medium">
+                         Shift
+                       </td>
+                       {days.map((_, dayIndex) => (
+                         <td key={dayIndex} className="border border-border p-2 text-center">
+                           <span className="text-sm">{calculateShiftCount()}</span>
+                         </td>
+                       ))}
+                     </tr>
 
                     {/* Time Intervals */}
                     {intervals.map((interval, intervalIndex) => (
@@ -164,17 +162,13 @@ export function RosterGrid({ rosterGrid, onRosterGridChange }: RosterGridProps) 
                           
                           return (
                             <td key={dayIndex} className="border border-border p-1 text-center">
-                              {dayIndex === 0 ? (
-                                <input
-                                  type="text"
-                                  className="w-full bg-transparent border-none text-center text-sm"
-                                  value={cellValue}
-                                  onChange={(e) => updateRosterValue(intervalIndex, e.target.value)}
-                                  placeholder="0"
-                                />
-                              ) : (
-                                <span className="text-sm">{cellValue}</span>
-                              )}
+                              <input
+                                type="text"
+                                className="w-full bg-transparent border-none text-center text-sm"
+                                value={cellValue}
+                                onChange={(e) => updateRosterValue(intervalIndex, e.target.value)}
+                                placeholder="0"
+                              />
                             </td>
                           );
                         })}
@@ -187,7 +181,7 @@ export function RosterGrid({ rosterGrid, onRosterGridChange }: RosterGridProps) 
           </TabsContent>
 
           <TabsContent value="volume">
-            <VolumeTable />
+            <VolumeTable volumeMatrix={volumeMatrix} onVolumeMatrixChange={onVolumeMatrixChange} days={days} />
           </TabsContent>
         </Tabs>
       </CardContent>
@@ -196,32 +190,28 @@ export function RosterGrid({ rosterGrid, onRosterGridChange }: RosterGridProps) 
 }
 
 // Volume Table Component
-function VolumeTable() {
-  const [volumeData, setVolumeData] = useState<number[][]>([]);
-  
+function VolumeTable({ volumeMatrix, onVolumeMatrixChange, days }: { volumeMatrix: number[][], onVolumeMatrixChange: (matrix: number[][]) => void, days: any[] }) {
   const intervals = Array.from({ length: 48 }, (_, i) => {
     const hour = Math.floor(i / 2);
     const minute = (i % 2) * 30;
     return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
   });
 
-  const days = Array.from({ length: 14 }, (_, i) => {
-    const date = new Date('2025-06-29');
-    date.setDate(date.getDate() + i);
-    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    return {
-      dayName: dayNames[date.getDay()],
-      date: `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}`
-    };
-  });
+  // Initialize with default values if empty
+  if (volumeMatrix.length === 0) {
+    const defaultData = Array(days.length).fill(0).map(() => 
+      Array(48).fill(0).map(() => Math.floor(Math.random() * 100) + 20)
+    );
+    onVolumeMatrixChange(defaultData);
+  }
 
   const updateVolumeValue = (dayIndex: number, intervalIndex: number, value: string) => {
-    const newData = [...volumeData];
+    const newData = [...volumeMatrix];
     if (!newData[dayIndex]) {
       newData[dayIndex] = Array(48).fill(0);
     }
     newData[dayIndex][intervalIndex] = parseInt(value) || 0;
-    setVolumeData(newData);
+    onVolumeMatrixChange(newData);
   };
 
   return (
@@ -252,7 +242,7 @@ function VolumeTable() {
                     <input
                       type="number"
                       className="w-full bg-transparent border-none text-center text-sm"
-                      value={volumeData[dayIndex]?.[intervalIndex] || 0}
+                      value={volumeMatrix[dayIndex]?.[intervalIndex] || 0}
                       onChange={(e) => updateVolumeValue(dayIndex, intervalIndex, e.target.value)}
                       placeholder="0"
                     />
