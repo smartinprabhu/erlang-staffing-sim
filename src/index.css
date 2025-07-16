@@ -58,6 +58,8 @@
     --chart-red: 0 84% 60%;
     --chart-purple: 262 83% 58%;
     --chart-teal: 173 80% 40%;
+    --chart-cyan: 186 100% 50%;
+    --chart-pink: 330 81% 60%;
 
     /* Gradients */
     --gradient-primary: linear-gradient(135deg, hsl(214 84% 56%), hsl(262 83% 58%));

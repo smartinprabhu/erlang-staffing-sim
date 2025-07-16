@@ -53,7 +53,7 @@ export function RosterGrid({ rosterGrid, onRosterGridChange, volumeMatrix, onVol
           return String(Math.floor(Math.random() * 5) + 3); // Off-peak: 3-8 agents
         }
       }
-      return '0'; // Off hours
+      return ''; // Off hours - empty string
     });
     onRosterGridChange([defaultRoster]);
   }
@@ -67,9 +67,6 @@ export function RosterGrid({ rosterGrid, onRosterGridChange, volumeMatrix, onVol
     onRosterGridChange(newGrid);
   };
 
-  const clearRoster = () => {
-    onRosterGridChange([Array(48).fill('')]);
-  };
 
   // Calculate shift count (non-empty values) - should be 17 hours
   const calculateShiftCount = () => {
@@ -83,18 +80,10 @@ export function RosterGrid({ rosterGrid, onRosterGridChange, volumeMatrix, onVol
   return (
     <Card className="mb-8">
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            Scheduling Grid
-          </CardTitle>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={clearRoster}>
-              <RotateCcw className="h-4 w-4 mr-2" />
-              Clear
-            </Button>
-          </div>
-        </div>
+        <CardTitle className="flex items-center gap-2">
+          <Users className="h-5 w-5" />
+          Scheduling Grid
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
