@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SimulationResults } from "./ContactCenterApp";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, ReferenceLine, Area, AreaChart, Tooltip } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, ReferenceLine, Area, AreaChart } from "recharts";
 import { Target, AlertTriangle } from "lucide-react";
 
 interface SLAChartProps {
@@ -77,13 +77,6 @@ export function SLAChart({ results, targetSLA }: SLAChartProps) {
                       fontSize={10}
                       domain={[0, 100]}
                     />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: "hsl(var(--card))", 
-                        border: "1px solid hsl(var(--border))",
-                        borderRadius: "8px"
-                      }}
-                    />
                     <ReferenceLine 
                       y={targetSLA} 
                       stroke="hsl(var(--chart-red))" 
@@ -117,13 +110,6 @@ export function SLAChart({ results, targetSLA }: SLAChartProps) {
                       stroke="hsl(var(--foreground))"
                       fontSize={10}
                       domain={[0, 100]}
-                    />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: "hsl(var(--card))", 
-                        border: "1px solid hsl(var(--border))",
-                        borderRadius: "8px"
-                      }}
                     />
                     <Area 
                       type="monotone" 

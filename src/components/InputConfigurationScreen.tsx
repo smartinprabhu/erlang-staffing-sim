@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar, Settings, Upload, Download, Play, RotateCcw } from "lucide-react";
 import { ConfigurationData } from "./ContactCenterApp";
 import { DateRangeSelector } from "./DateRangeSelector";
-
+import { VolumeMatrixGrid } from "./VolumeMatrixGrid";
 import { RosterGrid } from "./RosterGrid";
 import { StaffingChart } from "./StaffingChart";
 
@@ -204,15 +204,17 @@ export function InputConfigurationScreen({ onRunSimulation }: InputConfiguration
         </CardContent>
       </Card>
 
+      {/* Volume Matrix */}
+      <VolumeMatrixGrid 
+        volumeMatrix={volumeMatrix}
+        onVolumeMatrixChange={setVolumeMatrix}
+        weeks={weeks}
+      />
+
       {/* Roster Grid */}
       <RosterGrid 
         rosterGrid={rosterGrid}
         onRosterGridChange={setRosterGrid}
-        volumeMatrix={volumeMatrix}
-        onVolumeMatrixChange={setVolumeMatrix}
-        weeks={weeks}
-        fromDate={fromDate}
-        toDate={toDate}
       />
 
       {/* Live Staffing Chart */}

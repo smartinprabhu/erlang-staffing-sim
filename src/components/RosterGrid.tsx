@@ -7,14 +7,9 @@ import { Users, Calendar, RotateCcw } from "lucide-react";
 interface RosterGridProps {
   rosterGrid: string[][];
   onRosterGridChange: (grid: string[][]) => void;
-  volumeMatrix: number[][];
-  onVolumeMatrixChange: (matrix: number[][]) => void;
-  weeks: 4 | 8 | 12;
-  fromDate: string;
-  toDate: string;
 }
 
-export function RosterGrid({ rosterGrid, onRosterGridChange, volumeMatrix, onVolumeMatrixChange, weeks, fromDate, toDate }: RosterGridProps) {
+export function RosterGrid({ rosterGrid, onRosterGridChange }: RosterGridProps) {
   const [activeTab, setActiveTab] = useState("roster");
   
   // Generate all 48 intervals (00:00 to 23:30)
@@ -28,10 +23,9 @@ export function RosterGrid({ rosterGrid, onRosterGridChange, volumeMatrix, onVol
     };
   });
 
-  // Generate days based on date range
-  const totalDays = weeks * 7;
-  const days = Array.from({ length: totalDays }, (_, i) => {
-    const date = new Date(fromDate);
+  // Generate days (showing 14 days for this example)
+  const days = Array.from({ length: 14 }, (_, i) => {
+    const date = new Date('2025-06-29');
     date.setDate(date.getDate() + i);
     const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     return {
@@ -41,21 +35,29 @@ export function RosterGrid({ rosterGrid, onRosterGridChange, volumeMatrix, onVol
     };
   });
 
+  // Initialize roster values if empty
+  const rosterValues = rosterGrid.length > 0 ? rosterGrid[0] : Array(48).fill('');
+  
   // Initialize with default values if empty
-  if (rosterGrid.length === 0) {
-    // Default roster pattern: 17 hours shift (6:00 AM to 11:00 PM)
-    const defaultRoster = Array.from({ length: 48 }, (_, i) => {
-      const hour = Math.floor(i / 2);
-      if (hour >= 6 && hour <= 22) { // 17 hours: 6:00 AM to 11:00 PM
-        if (hour >= 8 && hour <= 18) {
-          return String(Math.floor(Math.random() * 8) + 12); // Peak hours: 12-20 agents
-        } else {
-          return String(Math.floor(Math.random() * 5) + 3); // Off-peak: 3-8 agents
+  const initializeDefaultValues = () => {
+    if (rosterGrid.length === 0) {
+      // Default roster pattern: higher staffing during business hours
+      const defaultRoster = Array.from({ length: 48 }, (_, i) => {
+        const hour = Math.floor(i / 2);
+        if (hour >= 8 && hour <= 17) {
+          return '5'; // Business hours
+        } else if (hour >= 6 && hour <= 20) {
+          return '2'; // Extended hours
         }
-      }
-      return ''; // Off hours - empty string
-    });
-    onRosterGridChange([defaultRoster]);
+        return '0'; // Off hours
+      });
+      onRosterGridChange([defaultRoster]);
+    }
+  };
+
+  // Initialize on component mount
+  if (rosterGrid.length === 0) {
+    initializeDefaultValues();
   }
 
   const updateRosterValue = (intervalIndex: number, value: string) => {
@@ -67,9 +69,12 @@ export function RosterGrid({ rosterGrid, onRosterGridChange, volumeMatrix, onVol
     onRosterGridChange(newGrid);
   };
 
+  const clearRoster = () => {
+    onRosterGridChange([Array(48).fill('')]);
+  };
 
-  // Calculate shift count (non-empty values) - should be 17 hours
-  const calculateShiftCount = () => {
+  // Calculate shift count (non-empty values)
+  const calculateShiftCount = (dayIndex: number) => {
     if (rosterGrid.length === 0) return 0;
     return intervals.reduce((count, _, intervalIndex) => {
       const value = rosterGrid[0][intervalIndex];
@@ -80,10 +85,18 @@ export function RosterGrid({ rosterGrid, onRosterGridChange, volumeMatrix, onVol
   return (
     <Card className="mb-8">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Users className="h-5 w-5" />
-          Scheduling Grid
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <Users className="h-5 w-5" />
+            Scheduling Grid
+          </CardTitle>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={clearRoster}>
+              <RotateCcw className="h-4 w-4 mr-2" />
+              Clear
+            </Button>
+          </div>
+        </div>
       </CardHeader>
       <CardContent>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -128,16 +141,16 @@ export function RosterGrid({ rosterGrid, onRosterGridChange, volumeMatrix, onVol
                     </tr>
                     
                     {/* Shift Count Row */}
-                     <tr>
-                       <td className="border border-border p-2 font-medium">
-                         Shift
-                       </td>
-                       {days.map((_, dayIndex) => (
-                         <td key={dayIndex} className="border border-border p-2 text-center">
-                           <span className="text-sm">{calculateShiftCount()}</span>
-                         </td>
-                       ))}
-                     </tr>
+                    <tr>
+                      <td className="border border-border p-2 font-medium">
+                        Shift
+                      </td>
+                      {days.map((_, dayIndex) => (
+                        <td key={dayIndex} className="border border-border p-2 text-center">
+                          <span className="text-sm">17</span>
+                        </td>
+                      ))}
+                    </tr>
 
                     {/* Time Intervals */}
                     {intervals.map((interval, intervalIndex) => (
@@ -151,13 +164,17 @@ export function RosterGrid({ rosterGrid, onRosterGridChange, volumeMatrix, onVol
                           
                           return (
                             <td key={dayIndex} className="border border-border p-1 text-center">
-                              <input
-                                type="text"
-                                className="w-full bg-transparent border-none text-center text-sm"
-                                value={cellValue}
-                                onChange={(e) => updateRosterValue(intervalIndex, e.target.value)}
-                                placeholder="0"
-                              />
+                              {dayIndex === 0 ? (
+                                <input
+                                  type="text"
+                                  className="w-full bg-transparent border-none text-center text-sm"
+                                  value={cellValue}
+                                  onChange={(e) => updateRosterValue(intervalIndex, e.target.value)}
+                                  placeholder="0"
+                                />
+                              ) : (
+                                <span className="text-sm">{cellValue}</span>
+                              )}
                             </td>
                           );
                         })}
@@ -170,7 +187,7 @@ export function RosterGrid({ rosterGrid, onRosterGridChange, volumeMatrix, onVol
           </TabsContent>
 
           <TabsContent value="volume">
-            <VolumeTable volumeMatrix={volumeMatrix} onVolumeMatrixChange={onVolumeMatrixChange} days={days} />
+            <VolumeTable />
           </TabsContent>
         </Tabs>
       </CardContent>
@@ -179,28 +196,32 @@ export function RosterGrid({ rosterGrid, onRosterGridChange, volumeMatrix, onVol
 }
 
 // Volume Table Component
-function VolumeTable({ volumeMatrix, onVolumeMatrixChange, days }: { volumeMatrix: number[][], onVolumeMatrixChange: (matrix: number[][]) => void, days: any[] }) {
+function VolumeTable() {
+  const [volumeData, setVolumeData] = useState<number[][]>([]);
+  
   const intervals = Array.from({ length: 48 }, (_, i) => {
     const hour = Math.floor(i / 2);
     const minute = (i % 2) * 30;
     return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
   });
 
-  // Initialize with default values if empty
-  if (volumeMatrix.length === 0) {
-    const defaultData = Array(days.length).fill(0).map(() => 
-      Array(48).fill(0).map(() => Math.floor(Math.random() * 100) + 20)
-    );
-    onVolumeMatrixChange(defaultData);
-  }
+  const days = Array.from({ length: 14 }, (_, i) => {
+    const date = new Date('2025-06-29');
+    date.setDate(date.getDate() + i);
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    return {
+      dayName: dayNames[date.getDay()],
+      date: `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}`
+    };
+  });
 
   const updateVolumeValue = (dayIndex: number, intervalIndex: number, value: string) => {
-    const newData = [...volumeMatrix];
+    const newData = [...volumeData];
     if (!newData[dayIndex]) {
       newData[dayIndex] = Array(48).fill(0);
     }
     newData[dayIndex][intervalIndex] = parseInt(value) || 0;
-    onVolumeMatrixChange(newData);
+    setVolumeData(newData);
   };
 
   return (
@@ -231,7 +252,7 @@ function VolumeTable({ volumeMatrix, onVolumeMatrixChange, days }: { volumeMatri
                     <input
                       type="number"
                       className="w-full bg-transparent border-none text-center text-sm"
-                      value={volumeMatrix[dayIndex]?.[intervalIndex] || 0}
+                      value={volumeData[dayIndex]?.[intervalIndex] || 0}
                       onChange={(e) => updateVolumeValue(dayIndex, intervalIndex, e.target.value)}
                       placeholder="0"
                     />
