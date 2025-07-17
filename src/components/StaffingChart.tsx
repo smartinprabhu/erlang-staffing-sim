@@ -4,33 +4,74 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Lege
 
 interface StaffingChartProps {
   volumeMatrix: number[][];
+  ahtMatrix?: number[][];
   rosterGrid: string[][];
   configData: ConfigurationData;
 }
 
-export function StaffingChart({ volumeMatrix, rosterGrid, configData }: StaffingChartProps) {
+export function StaffingChart({ volumeMatrix, ahtMatrix = [], rosterGrid, configData }: StaffingChartProps) {
+  
+  // Helper function to calculate metrics (same as CalculatedMetricsTable)
+  const calculateMetricsForInterval = (intervalIndex: number) => {
+    const totalDays = configData.weeks * 7;
+    
+    // Calculate totals across all days for this interval
+    let totalVolume = 0;
+    let totalAHT = 0;
+    let validDays = 0;
+    
+    for (let dayIndex = 0; dayIndex < totalDays; dayIndex++) {
+      const volume = volumeMatrix[dayIndex]?.[intervalIndex] || 0;
+      const aht = ahtMatrix[dayIndex]?.[intervalIndex] || configData.plannedAHT;
+      
+      if (volume > 0) {
+        totalVolume += volume;
+        totalAHT += aht;
+        validDays++;
+      }
+    }
+    
+    const avgAHT = validDays > 0 ? totalAHT / validDays : configData.plannedAHT;
+    
+    // Get rostered agents for this interval
+    const rosteredAgents = parseInt(rosterGrid[0]?.[intervalIndex] || '0') || 0;
+    
+    // Calculate metrics using same formulas as CalculatedMetricsTable
+    const actual = rosteredAgents; // Actual agents rostered
+    
+    // Staff Hours Required = Volume × AHT (convert to hours)
+    const staffHoursRequired = (totalVolume * avgAHT) / 3600;
+    
+    // Agent work hours per interval (30 minutes = 0.5 hours)
+    const agentWorkHours = 0.5 * (1 - (configData.outOfOfficeShrinkage + configData.billableBreak) / 100);
+    
+    // Required agents = Staff Hours ÷ Agent Work Hours
+    const requirement = staffHoursRequired / agentWorkHours;
+    
+    // Variance = Actual agents - Required agents
+    const variance = actual - requirement;
+    
+    return {
+      actual,
+      requirement: Math.round(requirement * 10) / 10,
+      variance: Math.round(variance * 10) / 10
+    };
+  };
+
   // Generate chart data for all 48 intervals (every 30 minutes)
   const chartData = Array.from({ length: 48 }, (_, i) => {
     const hour = Math.floor(i / 2);
     const minute = (i % 2) * 30;
     const timeLabel = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
     
-    // Calculate actual staffing from roster (sum of all agents for this interval)
-    const actualStaffing = rosterGrid.length > 0 ? (parseInt(rosterGrid[0][i]) || 0) : 0;
-    
-    // Calculate required staffing to be close to actual for better visualization
-    const volume = volumeMatrix[0]?.[i] || 0;
-    const baseRequired = Math.ceil(volume * configData.plannedAHT / 1800 * 0.8); // Closer to actual
-    const requiredStaffing = Math.max(1, Math.min(baseRequired, actualStaffing + Math.floor(Math.random() * 3) - 1));
-    
-    const difference = actualStaffing - requiredStaffing;
+    const metrics = calculateMetricsForInterval(i);
     
     return {
       time: timeLabel,
-      actual: actualStaffing,
-      required: requiredStaffing,
-      difference: difference,
-      fill: difference >= 0 ? "hsl(var(--chart-green))" : "hsl(var(--chart-orange))"
+      actual: metrics.actual,
+      required: metrics.requirement,
+      variance: metrics.variance,
+      fill: metrics.variance >= 0 ? "hsl(var(--chart-2))" : "hsl(var(--chart-1))"
     };
   });
 
@@ -71,29 +112,29 @@ export function StaffingChart({ volumeMatrix, rosterGrid, configData }: Staffing
               <Line 
                 type="monotone" 
                 dataKey="actual" 
-                stroke="hsl(var(--chart-blue))" 
-                strokeWidth={2}
+                stroke="hsl(var(--chart-3))" 
+                strokeWidth={3}
                 name="Actual"
-                dot={{ fill: "hsl(var(--chart-blue))", strokeWidth: 2 }}
+                dot={{ fill: "hsl(var(--chart-3))", strokeWidth: 2, r: 4 }}
               />
               <Line 
                 type="monotone" 
                 dataKey="required" 
-                stroke="hsl(var(--chart-red))" 
-                strokeWidth={2}
-                strokeDasharray="5 5"
+                stroke="hsl(var(--chart-4))" 
+                strokeWidth={3}
+                strokeDasharray="8 4"
                 name="Required"
-                dot={{ fill: "hsl(var(--chart-red))", strokeWidth: 2 }}
+                dot={{ fill: "hsl(var(--chart-4))", strokeWidth: 2, r: 4 }}
               />
               <Bar 
-                dataKey="difference" 
-                name="Difference"
+                dataKey="variance" 
+                name="Variance"
                 opacity={0.7}
               >
                 {chartData.map((entry, index) => (
                   <Cell 
                     key={`cell-${index}`} 
-                    fill={entry.difference >= 0 ? "hsl(var(--chart-green))" : "hsl(var(--chart-orange))"} 
+                    fill={entry.variance >= 0 ? "hsl(var(--chart-2))" : "hsl(var(--chart-1))"} 
                   />
                 ))}
               </Bar>
@@ -102,20 +143,20 @@ export function StaffingChart({ volumeMatrix, rosterGrid, configData }: Staffing
         </div>
         <div className="mt-4 flex justify-center gap-6 text-sm">
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-chart-blue rounded-full" />
-            <span>Actual - Count of agents scheduled</span>
+            <div className="w-3 h-3 bg-chart-3 rounded-full" />
+            <span>Actual - Agents rostered from schedule</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-chart-red rounded-full" />
-            <span>Required - Count needed based on Erlang-C</span>
+            <div className="w-3 h-3 bg-chart-4 rounded-full" />
+            <span>Required - Calculated from Volume × AHT</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-chart-green rounded-full" />
-            <span>Positive Difference - Overstaffing</span>
+            <div className="w-3 h-3 bg-chart-2 rounded-full" />
+            <span>Positive Variance - Adequate staffing</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-chart-orange rounded-full" />
-            <span>Negative Difference - Understaffing</span>
+            <div className="w-3 h-3 bg-chart-1 rounded-full" />
+            <span>Negative Variance - Understaffing</span>
           </div>
         </div>
       </CardContent>

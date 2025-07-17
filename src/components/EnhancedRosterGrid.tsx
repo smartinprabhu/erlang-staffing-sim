@@ -112,42 +112,58 @@ export function EnhancedRosterGrid({
       </CardHeader>
       <CardContent>
         <div className="overflow-auto max-h-96 border rounded-lg">
-          <table className="w-full border-collapse text-sm">
+          <table className="w-full border-collapse text-xs">
             <thead className="sticky top-0 bg-card z-10">
               <tr>
-                <th className="border border-border p-2 text-left min-w-28 bg-card font-medium">
-                  Scheduling
+                <th className="border border-border p-2 text-left min-w-20 bg-card font-medium">
+                  
                 </th>
                 {days.map((day, i) => (
-                  <th key={i} className="border border-border p-2 text-center min-w-16 bg-card">
-                    <div className="font-medium">{day.dayName}</div>
+                  <th key={i} className="border border-border p-1 text-center min-w-12 bg-card">
+                    <div className="font-medium text-xs">{day.dayName}</div>
                     <div className="text-xs text-muted-foreground">{day.date}</div>
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {/* Shift Count Row - Fixed at 17 */}
+              {/* Shift Row - Fixed at 17 */}
               <tr className="bg-secondary/20">
-                <td className="border border-border p-2 font-medium">
+                <td className="border border-border p-2 font-medium bg-muted/30">
                   Shift
                 </td>
                 {days.map((_, dayIndex) => (
-                  <td key={dayIndex} className="border border-border p-2 text-center font-medium">
+                  <td key={dayIndex} className="border border-border p-1 text-center font-medium bg-secondary/10">
                     17
                   </td>
                 ))}
               </tr>
               
-              {/* Roster Total Row */}
+              {/* Roster Row - Shows sum of all intervals for each day */}
               <tr className="bg-primary/10">
-                <td className="border border-border p-2 font-medium">
+                <td className="border border-border p-2 font-medium bg-muted/30">
                   Roster
                 </td>
+                {days.map((_, dayIndex) => {
+                  const dayTotal = intervals.reduce((total, _, intervalIndex) => {
+                    const value = rosterGrid[0]?.[intervalIndex] || '';
+                    return total + (parseInt(value) || 0);
+                  }, 0);
+                  return (
+                    <td key={dayIndex} className="border border-border p-1 text-center font-medium text-primary bg-primary/5">
+                      {dayTotal}
+                    </td>
+                  );
+                })}
+              </tr>
+
+              {/* Time Intervals with MST label */}
+              <tr className="bg-muted/20">
+                <td className="border border-border p-2 font-medium text-center bg-muted/40">
+                  MST
+                </td>
                 {days.map((_, dayIndex) => (
-                  <td key={dayIndex} className="border border-border p-2 text-center font-medium text-primary">
-                    {totalRoster}
-                  </td>
+                  <td key={dayIndex} className="border border-border p-1 bg-muted/10"></td>
                 ))}
               </tr>
 
@@ -158,27 +174,25 @@ export function EnhancedRosterGrid({
                 const rosterValue = rosterGrid[0]?.[intervalIndex] || '';
                 
                 return (
-                  <tr key={intervalIndex} className={`hover:bg-muted/50 ${isActiveShift ? 'bg-background' : 'bg-muted/30'}`}>
-                    <td className="border border-border p-2 font-medium">
-                      <div className="flex items-center gap-2">
-                        {interval.display}
-                        {isActiveShift && (
-                          <span className="w-2 h-2 bg-primary rounded-full" title="Active shift hour" />
-                        )}
+                  <tr key={intervalIndex} className="hover:bg-muted/20">
+                    <td className="border border-border p-1 font-medium text-xs bg-muted/20 min-w-20">
+                      <div className="flex flex-col">
+                        <span>{interval.time}</span>
+                        <span className="text-xs text-muted-foreground">{interval.time}</span>
                       </div>
                     </td>
                     {days.map((_, dayIndex) => (
-                      <td key={dayIndex} className="border border-border p-1 text-center">
+                      <td key={dayIndex} className="border border-border p-0.5 text-center">
                         <input
                           type="number"
-                          className={`w-full bg-transparent border-none text-center text-sm focus:bg-background focus:outline-none focus:ring-1 focus:ring-primary/20 rounded px-1 py-1 ${
+                          className={`w-full bg-transparent border-none text-center text-xs focus:bg-background focus:outline-none focus:ring-1 focus:ring-primary/20 rounded px-0.5 py-0.5 min-h-6 ${
                             isActiveShift ? 'font-medium' : 'text-muted-foreground'
-                          }`}
+                          } ${rosterValue && rosterValue !== '0' ? 'bg-green-50 text-green-800' : ''}`}
                           value={rosterValue}
                           onChange={(e) => updateRosterValue(intervalIndex, e.target.value)}
                           placeholder="0"
                           min="0"
-                          disabled={!isActiveShift}
+                          style={{ width: '100%', minWidth: '40px' }}
                         />
                       </td>
                     ))}
@@ -190,17 +204,22 @@ export function EnhancedRosterGrid({
         </div>
         
         <div className="mt-4 p-4 bg-muted/20 rounded-lg text-sm">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <h4 className="font-medium mb-2">Shift Summary:</h4>
-              <p><strong>Shift Count</strong> = 17 (fixed, 6:00 AM - 11:00 PM)</p>
-              <p><strong>Roster Total</strong> = Σ(all roster grid cells) = {totalRoster}</p>
+              <p><strong>Shift Count</strong> = 17 (fixed)</p>
+              <p><strong>Active Shifts</strong> = {activeShifts}</p>
+            </div>
+            <div>
+              <h4 className="font-medium mb-2">Roster Total:</h4>
+              <p><strong>Total Agents</strong> = {totalRoster}</p>
+              <p>Sum of all intervals across the day</p>
             </div>
             <div>
               <h4 className="font-medium mb-2">Instructions:</h4>
-              <p>• Enter agent count per 30-minute slot</p>
-              <p>• Active shifts: 6:00 AM to 11:00 PM (17 hours)</p>
-              <p>• Changes update all metrics automatically</p>
+              <p>• Enter agents per 30-min slot</p>
+              <p>• Green cells = scheduled agents</p>
+              <p>• Updates metrics automatically</p>
             </div>
           </div>
         </div>

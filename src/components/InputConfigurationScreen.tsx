@@ -239,6 +239,7 @@ export function InputConfigurationScreen({ onRunSimulation }: InputConfiguration
       {/* Live Staffing Chart */}
       <StaffingChart 
         volumeMatrix={volumeMatrix}
+        ahtMatrix={ahtMatrix}
         rosterGrid={rosterGrid}
         configData={{
           weeks,
