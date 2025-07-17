@@ -8,7 +8,10 @@ import { Calendar, Settings, Upload, Download, Play, RotateCcw } from "lucide-re
 import { ConfigurationData } from "./ContactCenterApp";
 import { DateRangeSelector } from "./DateRangeSelector";
 
-import { RosterGrid } from "./RosterGrid";
+import { ForecastVolumeTable } from "./ForecastVolumeTable";
+import { AHTTable } from "./AHTTable";
+import { EnhancedRosterGrid } from "./EnhancedRosterGrid";
+import { CalculatedMetricsTable } from "./CalculatedMetricsTable";
 import { StaffingChart } from "./StaffingChart";
 
 interface InputConfigurationScreenProps {
@@ -27,6 +30,7 @@ export function InputConfigurationScreen({ onRunSimulation }: InputConfiguration
   const [billableBreak, setBillableBreak] = useState(5.88);
   const [shiftDuration, setShiftDuration] = useState("8.5 hours");
   const [volumeMatrix, setVolumeMatrix] = useState<number[][]>([]);
+  const [ahtMatrix, setAHTMatrix] = useState<number[][]>([]);
   const [rosterGrid, setRosterGrid] = useState<string[][]>([]);
 
   const handleRunSimulation = () => {
@@ -50,20 +54,8 @@ export function InputConfigurationScreen({ onRunSimulation }: InputConfiguration
 
   const handleClear = () => {
     setVolumeMatrix([]);
+    setAHTMatrix([]);
     setRosterGrid([]);
-  };
-
-  const handleLoadSample = () => {
-    // Load sample data
-    const sampleVolume = Array(28).fill(0).map(() => 
-      Array(48).fill(0).map(() => Math.floor(Math.random() * 100) + 20)
-    );
-    const sampleRoster = Array(30).fill(0).map(() => 
-      Array(48).fill("")
-    );
-    
-    setVolumeMatrix(sampleVolume);
-    setRosterGrid(sampleRoster);
   };
 
   return (
@@ -185,13 +177,9 @@ export function InputConfigurationScreen({ onRunSimulation }: InputConfiguration
               </Select>
             </div>
             <div className="flex items-end gap-2">
-              <Button variant="outline" onClick={handleLoadSample} className="gap-2">
-                <Upload className="h-4 w-4" />
-                Load Sample
-              </Button>
               <Button variant="outline" onClick={handleClear} className="gap-2">
                 <RotateCcw className="h-4 w-4" />
-                Clear
+                Clear All
               </Button>
             </div>
           </div>
@@ -204,15 +192,48 @@ export function InputConfigurationScreen({ onRunSimulation }: InputConfiguration
         </CardContent>
       </Card>
 
-      {/* Roster Grid */}
-      <RosterGrid 
-        rosterGrid={rosterGrid}
-        onRosterGridChange={setRosterGrid}
+      {/* Forecast Volume Table */}
+      <ForecastVolumeTable
         volumeMatrix={volumeMatrix}
         onVolumeMatrixChange={setVolumeMatrix}
         weeks={weeks}
         fromDate={fromDate}
         toDate={toDate}
+      />
+
+      {/* AHT Table */}
+      <AHTTable
+        ahtMatrix={ahtMatrix}
+        onAHTMatrixChange={setAHTMatrix}
+        weeks={weeks}
+        fromDate={fromDate}
+        toDate={toDate}
+      />
+
+      {/* Enhanced Roster Grid */}
+      <EnhancedRosterGrid
+        rosterGrid={rosterGrid}
+        onRosterGridChange={setRosterGrid}
+        weeks={weeks}
+        fromDate={fromDate}
+        toDate={toDate}
+      />
+
+      {/* Calculated Metrics Table */}
+      <CalculatedMetricsTable
+        volumeMatrix={volumeMatrix}
+        ahtMatrix={ahtMatrix}
+        rosterGrid={rosterGrid}
+        configData={{
+          plannedAHT,
+          slaTarget,
+          serviceTime,
+          inOfficeShrinkage,
+          outOfOfficeShrinkage,
+          billableBreak,
+          shiftDuration
+        }}
+        weeks={weeks}
       />
 
       {/* Live Staffing Chart */}
