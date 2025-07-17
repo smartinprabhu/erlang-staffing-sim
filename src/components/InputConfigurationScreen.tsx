@@ -48,6 +48,23 @@ export function InputConfigurationScreen({ onRunSimulation }: InputConfiguration
     onRunSimulation(configData);
   };
 
+  const handleClear = () => {
+    setVolumeMatrix([]);
+    setRosterGrid([]);
+  };
+
+  const handleLoadSample = () => {
+    // Load sample data
+    const sampleVolume = Array(28).fill(0).map(() => 
+      Array(48).fill(0).map(() => Math.floor(Math.random() * 100) + 20)
+    );
+    const sampleRoster = Array(30).fill(0).map(() => 
+      Array(48).fill("")
+    );
+    
+    setVolumeMatrix(sampleVolume);
+    setRosterGrid(sampleRoster);
+  };
 
   return (
     <div className="min-h-screen bg-background p-6">
@@ -166,6 +183,16 @@ export function InputConfigurationScreen({ onRunSimulation }: InputConfiguration
                   <SelectItem value="10 hours">10 hours</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="flex items-end gap-2">
+              <Button variant="outline" onClick={handleLoadSample} className="gap-2">
+                <Upload className="h-4 w-4" />
+                Load Sample
+              </Button>
+              <Button variant="outline" onClick={handleClear} className="gap-2">
+                <RotateCcw className="h-4 w-4" />
+                Clear
+              </Button>
             </div>
           </div>
           <div className="mt-6">

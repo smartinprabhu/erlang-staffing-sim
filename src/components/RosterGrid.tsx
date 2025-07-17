@@ -41,7 +41,7 @@ export function RosterGrid({ rosterGrid, onRosterGridChange, volumeMatrix, onVol
     };
   });
 
-  // Initialize with default values if empty - 17 hours shift only
+  // Initialize with default values if empty
   if (rosterGrid.length === 0) {
     // Default roster pattern: 17 hours shift (6:00 AM to 11:00 PM)
     const defaultRoster = Array.from({ length: 48 }, (_, i) => {
@@ -53,7 +53,7 @@ export function RosterGrid({ rosterGrid, onRosterGridChange, volumeMatrix, onVol
           return String(Math.floor(Math.random() * 5) + 3); // Off-peak: 3-8 agents
         }
       }
-      return ''; // Off hours - empty for non-shift hours
+      return '0'; // Off hours
     });
     onRosterGridChange([defaultRoster]);
   }
@@ -88,8 +88,11 @@ export function RosterGrid({ rosterGrid, onRosterGridChange, volumeMatrix, onVol
             <Users className="h-5 w-5" />
             Scheduling Grid
           </CardTitle>
-          <div className="flex gap-2 text-sm text-muted-foreground">
-            <span>Shift Hours: 17 (6:00 AM - 11:00 PM)</span>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={clearRoster}>
+              <RotateCcw className="h-4 w-4 mr-2" />
+              Clear
+            </Button>
           </div>
         </div>
       </CardHeader>
@@ -147,37 +150,30 @@ export function RosterGrid({ rosterGrid, onRosterGridChange, volumeMatrix, onVol
                        ))}
                      </tr>
 
-                     {/* Time Intervals - Only show shift hours (6:00 AM to 11:00 PM) */}
-                    {intervals.map((interval, intervalIndex) => {
-                      const hour = Math.floor(intervalIndex / 2);
-                      const isShiftHour = hour >= 6 && hour <= 22; // 17 hours
-                      
-                      if (!isShiftHour) return null; // Don't render non-shift hours
-                      
-                      return (
-                        <tr key={intervalIndex}>
-                          <td className="border border-border p-2 font-medium">
-                            {interval.display}
-                          </td>
-                          {days.map((_, dayIndex) => {
-                            const rosterValue = rosterGrid[0]?.[intervalIndex] || '';
-                            const cellValue = rosterValue && rosterValue !== '0' ? rosterValue : '';
-                            
-                            return (
-                              <td key={dayIndex} className="border border-border p-1 text-center">
-                                <input
-                                  type="text"
-                                  className="w-full bg-transparent border-none text-center text-sm"
-                                  value={cellValue}
-                                  onChange={(e) => updateRosterValue(intervalIndex, e.target.value)}
-                                  placeholder="0"
-                                />
-                              </td>
-                            );
-                          })}
-                        </tr>
-                      );
-                    })}
+                    {/* Time Intervals */}
+                    {intervals.map((interval, intervalIndex) => (
+                      <tr key={intervalIndex}>
+                        <td className="border border-border p-2 font-medium">
+                          {interval.display}
+                        </td>
+                        {days.map((_, dayIndex) => {
+                          const rosterValue = rosterGrid[0]?.[intervalIndex] || '';
+                          const cellValue = rosterValue && rosterValue !== '0' ? rosterValue : '';
+                          
+                          return (
+                            <td key={dayIndex} className="border border-border p-1 text-center">
+                              <input
+                                type="text"
+                                className="w-full bg-transparent border-none text-center text-sm"
+                                value={cellValue}
+                                onChange={(e) => updateRosterValue(intervalIndex, e.target.value)}
+                                placeholder="0"
+                              />
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>

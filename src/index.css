@@ -103,33 +103,4 @@
   body {
     @apply bg-background text-foreground;
   }
-
-  /* Chart background color classes */
-  .bg-chart-blue {
-    background-color: hsl(var(--chart-blue));
-  }
-  
-  .bg-chart-green {
-    background-color: hsl(var(--chart-green));
-  }
-  
-  .bg-chart-orange {
-    background-color: hsl(var(--chart-orange));
-  }
-  
-  .bg-chart-red {
-    background-color: hsl(var(--chart-red));
-  }
-  
-  .text-chart-green {
-    color: hsl(var(--chart-green));
-  }
-  
-  .text-chart-red {
-    color: hsl(var(--chart-red));
-  }
-  
-  .text-chart-orange {
-    color: hsl(var(--chart-orange));
-  }
 }

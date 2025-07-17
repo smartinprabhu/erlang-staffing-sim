@@ -21,30 +21,23 @@ export function IntervalTable({ results }: IntervalTableProps) {
             <TableHeader>
               <TableRow>
                 <TableHead>Interval</TableHead>
-                <TableHead>Actual</TableHead>
-                <TableHead>Requirement</TableHead>
-                <TableHead>Variance</TableHead>
-                <TableHead>Call Trend</TableHead>
+                <TableHead>Volume</TableHead>
                 <TableHead>AHT</TableHead>
-                <TableHead>Service Level</TableHead>
-                <TableHead>Occupancy</TableHead>
-                <TableHead>Influx</TableHead>
-                <TableHead>Agent Distribution</TableHead>
+                <TableHead>Required</TableHead>
+                <TableHead>Actual</TableHead>
+                <TableHead>SLA %</TableHead>
+                <TableHead>Occupancy %</TableHead>
+                <TableHead>Variance</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {results.intervalResults.slice(0, 48).map((interval, index) => (
+              {results.intervalResults.slice(0, 20).map((interval, index) => (
                 <TableRow key={index}>
                   <TableCell className="font-medium">{interval.interval}</TableCell>
-                  <TableCell>{interval.actual}</TableCell>
-                  <TableCell>{interval.required}</TableCell>
-                  <TableCell>
-                    <span className={`font-medium ${interval.variance >= 0 ? 'text-chart-green' : 'text-chart-red'}`}>
-                      {interval.variance > 0 ? '+' : ''}{interval.variance}
-                    </span>
-                  </TableCell>
                   <TableCell>{interval.volume}</TableCell>
-                  <TableCell>1560s</TableCell>
+                  <TableCell>1560</TableCell>
+                  <TableCell>{interval.required}</TableCell>
+                  <TableCell>{interval.actual}</TableCell>
                   <TableCell>
                     <span className={`font-medium ${interval.sla >= 80 ? 'text-chart-green' : 'text-chart-red'}`}>
                       {interval.sla.toFixed(1)}%
@@ -55,8 +48,11 @@ export function IntervalTable({ results }: IntervalTableProps) {
                       {interval.occupancy.toFixed(1)}%
                     </span>
                   </TableCell>
-                  <TableCell>{Math.round(interval.volume * 0.8)}</TableCell>
-                  <TableCell>{(interval.actual / (interval.actual + interval.required) * 100).toFixed(1)}%</TableCell>
+                  <TableCell>
+                    <span className={`font-medium ${interval.variance >= 0 ? 'text-chart-green' : 'text-chart-red'}`}>
+                      {interval.variance > 0 ? '+' : ''}{interval.variance}
+                    </span>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

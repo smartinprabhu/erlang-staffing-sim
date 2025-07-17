@@ -141,7 +141,7 @@ export function OutputDashboard({ results, onBackToInput, configData }: OutputDa
         </TabsContent>
 
         <TabsContent value="daily">
-          <DailySummaryTable results={results} configData={configData} />
+          <DailySummaryTable results={results} />
         </TabsContent>
       </Tabs>
     </div>

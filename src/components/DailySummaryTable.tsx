@@ -1,62 +1,23 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { SimulationResults, ConfigurationData } from "./ContactCenterApp";
+import { SimulationResults } from "./ContactCenterApp";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface DailySummaryTableProps {
   results: SimulationResults;
-  configData: ConfigurationData;
 }
 
-export function DailySummaryTable({ results, configData }: DailySummaryTableProps) {
-  // Generate daily summary data based on date range
-  const totalDays = configData.weeks * 7;
-  const dailySummary = Array.from({ length: totalDays }, (_, i) => {
-    const baseDate = new Date(configData.fromDate);
+export function DailySummaryTable({ results }: DailySummaryTableProps) {
+  // Generate daily summary data
+  const dailySummary = Array.from({ length: 28 }, (_, i) => {
+    const baseDate = new Date('2025-06-29');
     baseDate.setDate(baseDate.getDate() + i);
     
-    // Calculate daily totals from roster grid and volume matrix
-    let totalVolume = 0;
-    let totalActual = 0;
-    let totalRequired = 0;
-    let avgSLA = 0;
-    let avgOccupancy = 0;
-    
-    // Sum up all intervals for this day
-    for (let intervalIndex = 0; intervalIndex < 48; intervalIndex++) {
-      const volume = configData.volumeMatrix[i]?.[intervalIndex] || 0;
-      const actual = parseInt(configData.rosterGrid[0]?.[intervalIndex]) || 0;
-      
-      totalVolume += volume;
-      totalActual += actual;
-      
-      // Calculate required based on Erlang-C
-      const ahtInHours = configData.plannedAHT / 3600;
-      const workloadInHours = volume * ahtInHours;
-      const required = Math.max(1, Math.ceil(workloadInHours / 0.5));
-      totalRequired += required;
-      
-      // Calculate SLA and occupancy for this interval
-      const intervalSLA = actual >= required 
-        ? Math.min(95, 80 + (actual - required) * 5)
-        : Math.max(60, 80 - (required - actual) * 10);
-      
-      const intervalOccupancy = actual > 0 
-        ? Math.min(95, (workloadInHours / actual / 0.5) * 100)
-        : 0;
-      
-      avgSLA += intervalSLA;
-      avgOccupancy += intervalOccupancy;
-    }
-    
-    avgSLA = avgSLA / 48;
-    avgOccupancy = avgOccupancy / 48;
-    
     return {
-      date: `${baseDate.getDate().toString().padStart(2, '0')}/${(baseDate.getMonth() + 1).toString().padStart(2, '0')}/${baseDate.getFullYear()}`,
-      totalVolume,
-      avgSLA,
-      occupancy: avgOccupancy,
-      avgStaffing: Math.round(totalActual / 48)
+      date: `${baseDate.getDate().toString().padStart(2, '0')}/${(baseDate.getMonth() + 1).toString().padStart(2, '0')}/2025`,
+      totalVolume: Math.floor(Math.random() * 2000) + 1000,
+      avgSLA: Math.random() * 40 + 60,
+      occupancy: Math.random() * 20 + 75,
+      avgStaffing: Math.floor(Math.random() * 10) + 15
     };
   });
 
