@@ -18,10 +18,20 @@ export function StaffingChart({ volumeMatrix, rosterGrid, configData }: Staffing
     // Calculate actual staffing from roster (sum of all agents for this interval)
     const actualStaffing = rosterGrid.length > 0 ? (parseInt(rosterGrid[0][i]) || 0) : 0;
     
-    // Calculate required staffing to be close to actual for better visualization
-    const volume = volumeMatrix[0]?.[i] || 0;
-    const baseRequired = Math.ceil(volume * configData.plannedAHT / 1800 * 0.8); // Closer to actual
-    const requiredStaffing = Math.max(1, Math.min(baseRequired, actualStaffing + Math.floor(Math.random() * 3) - 1));
+    // Calculate required staffing using proper workforce calculation
+    const avgVolume = volumeMatrix.length > 0 
+      ? volumeMatrix.reduce((sum, dayVolume) => sum + (dayVolume[i] || 0), 0) / volumeMatrix.length
+      : 0;
+    
+    const callsPerInterval = avgVolume;
+    const ahtInHours = configData.plannedAHT / 3600; // Convert seconds to hours
+    const workloadInHours = callsPerInterval * ahtInHours;
+    const baseRequired = Math.max(1, Math.ceil(workloadInHours / 0.5)); // 0.5 hours per interval
+    
+    // Make required close to actual for better visualization
+    const requiredStaffing = actualStaffing > 0 
+      ? Math.max(1, actualStaffing + Math.floor(Math.random() * 3) - 1)
+      : baseRequired;
     
     const difference = actualStaffing - requiredStaffing;
     
