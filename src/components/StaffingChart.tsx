@@ -33,8 +33,9 @@ export function StaffingChart({ volumeMatrix, ahtMatrix = [], rosterGrid, config
     
     const avgAHT = validDays > 0 ? totalAHT / validDays : configData.plannedAHT;
     
-    // Get rostered agents for this interval
-    const rosteredAgents = parseInt(rosterGrid[0]?.[intervalIndex] || '0') || 0;
+    // Get rostered agents for this interval (sum across all 17 shifts)
+    const rosteredAgents = rosterGrid[intervalIndex] ? 
+      rosterGrid[intervalIndex].reduce((sum, value) => sum + (parseInt(value) || 0), 0) : 0;
     
     // Calculate metrics using same formulas as CalculatedMetricsTable
     const actual = rosteredAgents; // Actual agents rostered

@@ -54,11 +54,12 @@ export function CalculatedMetricsTable({
       
       const avgAHT = validDays > 0 ? totalAHT / validDays : configData.plannedAHT;
       
-      // Get rostered agents for this interval
-      const rosteredAgents = parseInt(rosterGrid[0]?.[intervalIndex] || '0') || 0;
+      // Get rostered agents for this interval (sum across all 17 shifts)
+      const rosteredAgents = rosterGrid[intervalIndex] ? 
+        rosterGrid[intervalIndex].reduce((sum, value) => sum + (parseInt(value) || 0), 0) : 0;
       
       // Calculate metrics
-      const actual = totalVolume; // Actual workload (calls)
+      const actual = rosteredAgents; // Actual scheduled agents
       
       // Staff Hours Required = Volume × AHT (convert to hours)
       const staffHoursRequired = (totalVolume * avgAHT) / 3600;
@@ -88,18 +89,20 @@ export function CalculatedMetricsTable({
       // Influx = Calls per hour
       const influx = totalVolume * 2; // Convert 30-min to hourly rate
       
-      // Agent Distribution Ratio
-      const totalAgents = rosterGrid[0]?.reduce((sum, val) => sum + (parseInt(val) || 0), 0) || 1;
+      // Agent Distribution Ratio - calculate total agents across all intervals and shifts
+      const totalAgents = rosterGrid.reduce((total, row) => {
+        return total + row.reduce((rowSum, val) => rowSum + (parseInt(val) || 0), 0);
+      }, 0) || 1;
       const agentDistributionRatio = (rosteredAgents / totalAgents) * 100;
       
       if (totalVolume > 0 || rosteredAgents > 0) {
         metrics.push({
           time: timeDisplay,
-          actual: Math.round(actual),
+          actual: Math.round(actual), // Actual scheduled agents
           requirement: Math.round(requirement * 10) / 10,
           variance: Math.round(variance * 10) / 10,
           callTrend,
-          aht: Math.round(avgAHT),
+          aht: Math.round(avgAHT / 60 * 10) / 10, // Convert to minutes with 1 decimal
           serviceLevel: Math.round(serviceLevel * 10) / 10,
           occupancy: Math.round(occupancy * 10) / 10,
           influx: Math.round(influx),
@@ -177,7 +180,7 @@ export function CalculatedMetricsTable({
                     {getVarianceIcon(metric.variance)}
                   </td>
                   <td className="border border-border p-2 text-center">{formatValue(metric.callTrend, 'percentage')}</td>
-                  <td className="border border-border p-2 text-center">{formatValue(metric.aht, 'time')}</td>
+                  <td className="border border-border p-2 text-center">{metric.aht} min</td>
                   <td className="border border-border p-2 text-center">{formatValue(metric.serviceLevel, 'percentage')}</td>
                   <td className="border border-border p-2 text-center">{formatValue(metric.occupancy, 'percentage')}</td>
                   <td className="border border-border p-2 text-center">{metric.influx}</td>
