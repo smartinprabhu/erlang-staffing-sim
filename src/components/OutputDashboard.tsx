@@ -56,7 +56,7 @@ export function OutputDashboard({ results, onBackToInput, configData }: OutputDa
         <MetricCard
           title="Final SLA"
           value={`${results.finalSLA.toFixed(1)}%`}
-          subtitle="Agents in Shifts"
+          subtitle="Basis agents plotted in shifts"
           icon={Target}
           color="blue"
           trend={results.finalSLA >= 80 ? "up" : "down"}
@@ -64,7 +64,7 @@ export function OutputDashboard({ results, onBackToInput, configData }: OutputDa
         <MetricCard
           title="Final Occupancy"
           value={`${results.finalOccupancy.toFixed(1)}%`}
-          subtitle="Optimum Staffing"
+          subtitle="Where SLA meets optimum staffing"
           icon={TrendingUp}
           color="green"
           trend="up"

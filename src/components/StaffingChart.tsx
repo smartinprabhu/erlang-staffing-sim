@@ -1,6 +1,15 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConfigurationData } from "./ContactCenterApp";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend, Bar, ComposedChart, Tooltip, Cell } from "recharts";
+import {
+  calculateEffectiveVolume,
+  calculateRequiredAgents,
+  calculateVariance,
+  calculateSLA,
+  calculateOccupancy,
+  erlangAgents,
+  erlangUtilization
+} from "@/lib/erlang";
 
 interface StaffingChartProps {
   volumeMatrix: number[][];
@@ -11,7 +20,7 @@ interface StaffingChartProps {
 
 export function StaffingChart({ volumeMatrix, ahtMatrix = [], rosterGrid, configData }: StaffingChartProps) {
   
-  // Helper function to calculate metrics (same as CalculatedMetricsTable)
+  // Helper function to calculate metrics using exact Excel formulas
   const calculateMetricsForInterval = (intervalIndex: number) => {
     const totalDays = configData.weeks * 7;
     
@@ -33,36 +42,41 @@ export function StaffingChart({ volumeMatrix, ahtMatrix = [], rosterGrid, config
     
     const avgAHT = validDays > 0 ? totalAHT / validDays : configData.plannedAHT;
     
-    // Get rostered agents for this interval (sum across all 17 shifts)
+    // Get rostered agents for this interval
     const rosteredAgents = rosterGrid[intervalIndex] ? 
       rosterGrid[intervalIndex].reduce((sum, value) => sum + (parseInt(value) || 0), 0) : 0;
     
-    // Calculate metrics using same formulas as CalculatedMetricsTable
-    const actual = rosteredAgents; // Actual agents rostered
+    // EXACT EXCEL SMORT CALCULATIONS:
     
-    // Staff Hours Required = Volume × AHT (convert to hours)
-    const staffHoursRequired = (totalVolume * avgAHT) / 3600;
+    // 1. Effective Volume (BA7): ((SUM(D7:AY7)*(1-$BA$1))*(1-$BB$1))*(1-$AZ$1)
+    const effectiveVolume = calculateEffectiveVolume(
+      totalVolume,
+      configData.outOfOfficeShrinkage,
+      configData.inOfficeShrinkage,
+      configData.billableBreak
+    );
     
-    // Agent work hours per interval (30 minutes = 0.5 hours)
-    const agentWorkHours = 0.5 * (1 - (configData.outOfOfficeShrinkage + configData.billableBreak) / 100);
+    // 2. Required Agents (BB7): IF(BD7<=0,0,Agents($A$1,$B$1,BD7*2,BE7))
+    const trafficIntensity = (effectiveVolume * avgAHT) / 3600;
+    const requiredAgents = effectiveVolume > 0 ? 
+      erlangAgents(configData.slaTarget / 100, configData.serviceTime, trafficIntensity, avgAHT) : 0;
     
-    // Required agents = Staff Hours ÷ Agent Work Hours
-    const requirement = staffHoursRequired / agentWorkHours;
-    
-    // Variance = Actual agents - Required agents
-    const variance = actual - requirement;
+    // 3. Variance = Actual - Required
+    const variance = calculateVariance(rosteredAgents, requiredAgents);
     
     return {
-      actual,
-      requirement: Math.round(requirement * 10) / 10,
+      actual: rosteredAgents,
+      requirement: Math.round(requiredAgents * 10) / 10,
       variance: Math.round(variance * 10) / 10
     };
   };
 
-  // Generate chart data for all 48 intervals (every 30 minutes)
+  // Generate chart data for all 48 intervals (Excel SMORT format: 12:30 AM to 12:00 AM)
   const chartData = Array.from({ length: 48 }, (_, i) => {
-    const hour = Math.floor(i / 2);
-    const minute = (i % 2) * 30;
+    // Excel starts at 12:30 AM (0:30), so we add 30 minutes to the base calculation
+    const totalMinutes = (i * 30) + 30; // Start from 30 minutes (12:30 AM)
+    const hour = Math.floor(totalMinutes / 60) % 24; // Wrap around at 24 hours
+    const minute = totalMinutes % 60;
     const timeLabel = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
     
     const metrics = calculateMetricsForInterval(i);
@@ -79,9 +93,9 @@ export function StaffingChart({ volumeMatrix, ahtMatrix = [], rosterGrid, config
   return (
     <Card className="mb-8">
       <CardHeader>
-        <CardTitle>Live Interactive Chart: Actual vs Required</CardTitle>
+        <CardTitle>Live Interactive Chart: Actual vs Required (Excel SMORT Formula)</CardTitle>
         <p className="text-sm text-muted-foreground">
-          Chart updates dynamically as you edit the roster grid or any input parameter
+          Chart updates dynamically using exact Excel formulas for effective volume, required agents, and variance calculations
         </p>
       </CardHeader>
       <CardContent>
@@ -113,19 +127,19 @@ export function StaffingChart({ volumeMatrix, ahtMatrix = [], rosterGrid, config
               <Line 
                 type="monotone" 
                 dataKey="actual" 
-                stroke="hsl(var(--chart-3))" 
+                stroke="#3b82f6" 
                 strokeWidth={3}
                 name="Actual"
-                dot={{ fill: "hsl(var(--chart-3))", strokeWidth: 2, r: 4 }}
+                dot={{ fill: "#3b82f6", strokeWidth: 2, r: 4 }}
               />
               <Line 
                 type="monotone" 
                 dataKey="required" 
-                stroke="hsl(var(--chart-4))" 
+                stroke="#ef4444" 
                 strokeWidth={3}
                 strokeDasharray="8 4"
                 name="Required"
-                dot={{ fill: "hsl(var(--chart-4))", strokeWidth: 2, r: 4 }}
+                dot={{ fill: "#ef4444", strokeWidth: 2, r: 4 }}
               />
               <Bar 
                 dataKey="variance" 
@@ -135,7 +149,7 @@ export function StaffingChart({ volumeMatrix, ahtMatrix = [], rosterGrid, config
                 {chartData.map((entry, index) => (
                   <Cell 
                     key={`cell-${index}`} 
-                    fill={entry.variance >= 0 ? "hsl(var(--chart-2))" : "hsl(var(--chart-1))"} 
+                    fill={entry.variance >= 0 ? "#f59e0b" : "#ef4444"} 
                   />
                 ))}
               </Bar>
@@ -144,19 +158,19 @@ export function StaffingChart({ volumeMatrix, ahtMatrix = [], rosterGrid, config
         </div>
         <div className="mt-4 flex justify-center gap-6 text-sm">
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-chart-3 rounded-full" />
+            <div className="w-3 h-3 bg-blue-500 rounded-full" />
             <span>Actual - Agents rostered from schedule</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-chart-4 rounded-full" />
+            <div className="w-3 h-3 bg-red-500 rounded-full" />
             <span>Required - Calculated from Volume × AHT</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-chart-2 rounded-full" />
+            <div className="w-3 h-3 bg-yellow-500 rounded-full" />
             <span>Positive Variance - Adequate staffing</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-chart-1 rounded-full" />
+            <div className="w-3 h-3 bg-red-500 rounded-full" />
             <span>Negative Variance - Understaffing</span>
           </div>
         </div>

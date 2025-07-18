@@ -191,51 +191,6 @@ export function InputConfigurationScreen({ onRunSimulation }: InputConfiguration
           </div>
         </CardContent>
       </Card>
-
-      {/* Forecast Volume Table */}
-      <ForecastVolumeTable
-        volumeMatrix={volumeMatrix}
-        onVolumeMatrixChange={setVolumeMatrix}
-        weeks={weeks}
-        fromDate={fromDate}
-        toDate={toDate}
-      />
-
-      {/* AHT Table */}
-      <AHTTable
-        ahtMatrix={ahtMatrix}
-        onAHTMatrixChange={setAHTMatrix}
-        weeks={weeks}
-        fromDate={fromDate}
-        toDate={toDate}
-      />
-
-      {/* Enhanced Roster Grid */}
-      <EnhancedRosterGrid
-        rosterGrid={rosterGrid}
-        onRosterGridChange={setRosterGrid}
-        weeks={weeks}
-        fromDate={fromDate}
-        toDate={toDate}
-      />
-
-      {/* Calculated Metrics Table */}
-      <CalculatedMetricsTable
-        volumeMatrix={volumeMatrix}
-        ahtMatrix={ahtMatrix}
-        rosterGrid={rosterGrid}
-        configData={{
-          plannedAHT,
-          slaTarget,
-          serviceTime,
-          inOfficeShrinkage,
-          outOfOfficeShrinkage,
-          billableBreak,
-          shiftDuration
-        }}
-        weeks={weeks}
-      />
-
       {/* Live Staffing Chart */}
       <StaffingChart 
         volumeMatrix={volumeMatrix}
@@ -256,6 +211,49 @@ export function InputConfigurationScreen({ onRunSimulation }: InputConfiguration
           rosterGrid
         }}
       />
+
+      {/* Enhanced Roster Grid */}
+      <EnhancedRosterGrid
+        rosterGrid={rosterGrid}
+        onRosterGridChange={setRosterGrid}
+      />
+
+      {/* Calculated Metrics Table */}
+      <CalculatedMetricsTable
+        volumeMatrix={volumeMatrix}
+        ahtMatrix={ahtMatrix}
+        rosterGrid={rosterGrid}
+        configData={{
+          plannedAHT,
+          slaTarget,
+          serviceTime,
+          inOfficeShrinkage,
+          outOfOfficeShrinkage,
+          billableBreak,
+          shiftDuration
+        }}
+        weeks={weeks}
+      />
+      {/* Forecast Volume Table */}
+      <ForecastVolumeTable
+        volumeMatrix={volumeMatrix}
+        onVolumeMatrixChange={setVolumeMatrix}
+        weeks={weeks}
+        fromDate={fromDate}
+        toDate={toDate}
+      />
+
+      {/* AHT Table */}
+      <AHTTable
+        ahtMatrix={ahtMatrix}
+        onAHTMatrixChange={setAHTMatrix}
+        weeks={weeks}
+        fromDate={fromDate}
+        toDate={toDate}
+      />
+
+
+
     </div>
   );
 }

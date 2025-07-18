@@ -18,13 +18,17 @@ export function ForecastVolumeTable({
   fromDate, 
   toDate 
 }: ForecastVolumeTableProps) {
-  // Generate time intervals (48 intervals per day - 30 min each)
+  // Generate time intervals exactly as Excel SMORT (48 intervals starting from 12:30 AM to 12:00 AM)
   const intervals = Array.from({ length: 48 }, (_, i) => {
-    const hour = Math.floor(i / 2);
-    const minute = (i % 2) * 30;
+    // Excel starts at 12:30 AM (0:30), so we add 30 minutes to the base calculation
+    const totalMinutes = (i * 30) + 30; // Start from 30 minutes (12:30 AM)
+    const hour = Math.floor(totalMinutes / 60) % 24; // Wrap around at 24 hours
+    const minute = totalMinutes % 60;
+    
     return {
       time: `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`,
-      display: `${(hour % 12 || 12).toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')} ${hour < 12 ? 'AM' : 'PM'}`
+      display: `${(hour % 12 || 12).toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')} ${hour < 12 ? 'AM' : 'PM'}`,
+      excelFormat: `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}` // 24-hour format like Excel
     };
   });
 
@@ -63,7 +67,12 @@ export function ForecastVolumeTable({
     if (!newMatrix[dayIndex]) {
       newMatrix[dayIndex] = Array(48).fill(0);
     }
-    newMatrix[dayIndex][intervalIndex] = parseInt(value) || 0;
+    
+    // Excel SMORT validation: Only allow positive integers
+    const numericValue = parseInt(value) || 0;
+    const validatedValue = Math.max(0, numericValue); // Ensure non-negative
+    
+    newMatrix[dayIndex][intervalIndex] = validatedValue;
     onVolumeMatrixChange(newMatrix);
   };
 
@@ -106,7 +115,7 @@ export function ForecastVolumeTable({
           </div>
         </div>
         <div className="text-sm text-muted-foreground">
-          <p>Enter expected call volumes per 30-minute interval. Historical call volume is the primary input for predicting staffing needs.</p>
+          <p>Excel SMORT Volume Table: Enter expected call volumes per 30-minute interval (12:30 AM to 12:00 AM)</p>
           <p className="mt-1">Date Range: {fromDate} to {toDate} | {totalDays} days ({weeks} weeks)</p>
         </div>
       </CardHeader>
@@ -130,7 +139,10 @@ export function ForecastVolumeTable({
               {intervals.map((interval, intervalIndex) => (
                 <tr key={intervalIndex} className="hover:bg-muted/50">
                   <td className="border border-border p-2 font-medium bg-muted/20">
-                    {interval.display}
+                    <div className="flex flex-col">
+                      <span className="font-medium">{interval.excelFormat}</span>
+                      <span className="text-xs text-muted-foreground">{interval.display}</span>
+                    </div>
                   </td>
                   {days.map((_, dayIndex) => (
                     <td key={dayIndex} className="border border-border p-1 text-center">
@@ -150,10 +162,13 @@ export function ForecastVolumeTable({
           </table>
         </div>
         <div className="mt-4 p-4 bg-muted/20 rounded-lg text-sm">
-          <h4 className="font-medium mb-2">Formula:</h4>
-          <p className="text-muted-foreground">
-            <strong>Total Volume = Σ(Volume per interval)</strong> - Sum of all volume entries for the selected period
-          </p>
+          <h4 className="font-medium mb-2">Excel SMORT Volume Formulas:</h4>
+          <div className="space-y-2">
+            <p><strong>Total Volume (D7:AY7)</strong> = SUM(Volume per interval across all days)</p>
+            <p><strong>Effective Volume (BA7)</strong> = ((Total Volume × (1-OutOfOffice%)) × (1-InOffice%)) × (1-BillableBreak%)</p>
+            <p><strong>Time Range</strong> = 48 intervals from 00:30 to 00:00 (30-minute intervals)</p>
+            <p><strong>Usage</strong> = Input for Erlang-C calculations and agent requirements</p>
+          </div>
         </div>
       </CardContent>
     </Card>
