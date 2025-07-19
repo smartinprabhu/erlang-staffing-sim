@@ -122,15 +122,15 @@ export function ForecastVolumeTable({
       <CardContent>
         <div className="overflow-auto max-h-96 border rounded-lg">
           <table className="w-full border-collapse text-sm">
-            <thead className="sticky top-0 bg-card z-10">
+            <thead className="sticky top-0 bg-[#475569] z-20 text-white">
               <tr>
-                <th className="border border-border p-2 text-left min-w-28 bg-card font-medium">
+                <th className="sticky top-0 left-0 border-r border-border p-2 text-left min-w-28 bg-[#475569] font-medium z-30">
                   TIME INTERVAL
                 </th>
                 {days.map((day, i) => (
-                  <th key={i} className="border border-border p-2 text-center min-w-16 bg-card">
+                  <th key={i} className="sticky top-0 border border-border p-2 text-center min-w-16 bg-[#475569]">
                     <div className="font-medium">{day.dayName}</div>
-                    <div className="text-xs text-muted-foreground">{day.date}</div>
+                    <div className="text-xs text-gray-300">{day.date}</div>
                   </th>
                 ))}
               </tr>
@@ -138,10 +138,10 @@ export function ForecastVolumeTable({
             <tbody>
               {intervals.map((interval, intervalIndex) => (
                 <tr key={intervalIndex} className="hover:bg-muted/50">
-                  <td className="border border-border p-2 font-medium bg-muted/20">
+                  <td className="sticky left-0 border-r border-border p-2 font-medium bg-[#2D3A4C] text-white z-10">
                     <div className="flex flex-col">
                       <span className="font-medium">{interval.excelFormat}</span>
-                      <span className="text-xs text-muted-foreground">{interval.display}</span>
+                      <span className="text-xs text-gray-300">{interval.display}</span>
                     </div>
                   </td>
                   {days.map((_, dayIndex) => (

@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calculator, TrendingUp, TrendingDown } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   calculateEffectiveVolume,
   calculateRequiredAgents,
@@ -75,9 +76,15 @@ export function CalculatedMetricsTable({
       
       const avgAHT = validDays > 0 ? totalAHT / validDays : configData.plannedAHT;
       
-      // Get rostered agents for this interval (sum across all shifts)
-      const rosteredAgents = rosterGrid[intervalIndex] ? 
+      // Get rostered agents for this interval (sum across all shifts) and apply shrinkage factors
+      const rawRosteredAgents = rosterGrid[intervalIndex] ? 
         rosterGrid[intervalIndex].reduce((sum, value) => sum + (parseInt(value) || 0), 0) : 0;
+      
+      // Apply same shrinkage factors as effective volume calculation
+      const rosteredAgents = rawRosteredAgents * 
+        (1 - configData.outOfOfficeShrinkage / 100) * 
+        (1 - configData.inOfficeShrinkage / 100) * 
+        (1 - configData.billableBreak / 100);
       
       // EXACT EXCEL SMORT FORMULAS (Based on Excel cells BA7, BB7, BC7, etc.):
       
@@ -126,7 +133,22 @@ export function CalculatedMetricsTable({
           serviceLevel: Math.round(serviceLevel * 10) / 10,
           occupancy: Math.round(occupancy * 10) / 10,
           influx: Math.round(influx),
-          agentDistributionRatio: Math.round(agentDistributionRatio * 10) / 10
+          agentDistributionRatio: Math.round(agentDistributionRatio * 10) / 10,
+          raw: {
+            totalVolume,
+            effectiveVolume,
+            avgAHT,
+            trafficIntensity,
+            requiredAgents,
+            rosteredAgents,
+            rawRosteredAgents,
+            totalAgents,
+            serviceLevel,
+            occupancy,
+            influx,
+            agentDistributionRatio,
+            variance
+          }
         });
       }
     }
@@ -139,7 +161,7 @@ export function CalculatedMetricsTable({
   const formatValue = (value: number, type: string) => {
     switch (type) {
       case 'percentage':
-        return `${value}%`;
+        return `${value.toFixed(1)}%`;
       case 'time':
         const minutes = Math.floor(value / 60);
         const seconds = value % 60;
@@ -175,64 +197,257 @@ export function CalculatedMetricsTable({
       <CardContent>
         <div className="overflow-auto max-h-96 border rounded-lg">
           <table className="w-full border-collapse text-sm">
-            <thead className="sticky top-0 bg-card z-10">
+            <thead className="sticky top-[-1px] bg-card z-10">
               <tr>
-                <th className="border border-border p-2 text-left min-w-20 bg-card font-medium">Time</th>
-                <th className="border border-border p-2 text-center min-w-16 bg-card font-medium">Actual</th>
-                <th className="border border-border p-2 text-center min-w-20 bg-card font-medium">Requirement</th>
-                <th className="border border-border p-2 text-center min-w-16 bg-card font-medium">Variance</th>
-                <th className="border border-border p-2 text-center min-w-16 bg-card font-medium">Call Trend</th>
-                <th className="border border-border p-2 text-center min-w-16 bg-card font-medium">AHT</th>
-                <th className="border border-border p-2 text-center min-w-20 bg-card font-medium">Service Level</th>
-                <th className="border border-border p-2 text-center min-w-16 bg-card font-medium">Occupancy</th>
-                <th className="border border-border p-2 text-center min-w-16 bg-card font-medium">Influx</th>
-                <th className="border border-border p-2 text-center min-w-20 bg-card font-medium">Agent Ratio</th>
+                <th className="border border-border p-2 text-left min-w-20 bg-[#475569]  font-medium">Time</th>
+                <th className="border border-border p-2 text-center min-w-16 bg-[#475569]  font-medium">Actual</th>
+                <th className="border border-border p-2 text-center min-w-20 bg-[#475569]  font-medium">Requirement</th>
+                <th className="border border-border p-2 text-center min-w-16 bg-[#475569]  font-medium">Variance</th>
+                <th className="border border-border p-2 text-center min-w-16 bg-[#475569] font-medium">Call Trend</th>
+                <th className="border border-border p-2 text-center min-w-16 bg-[#475569] font-medium">AHT</th>
+                <th className="border border-border p-2 text-center min-w-20 bg-[#475569] font-medium">Service Level</th>
+                <th className="border border-border p-2 text-center min-w-16 bg-[#475569]  font-medium">Occupancy</th>
+                <th className="border border-border p-2 text-center min-w-16 bg-[#475569] font-medium">Influx</th>
+                <th className="border border-border p-2 text-center min-w-20 bg-[#475569]  font-medium">Agent Ratio</th>
               </tr>
             </thead>
             <tbody>
               {metrics.map((metric, index) => (
                 <tr key={index} className="hover:bg-muted/50">
                   <td className="border border-border p-2 font-medium bg-muted/20">{metric.time}</td>
-                  <td className="border border-border p-2 text-center">{metric.actual}</td>
-                  <td className="border border-border p-2 text-center">{metric.requirement}</td>
-                  <td className={`border border-border p-2 text-center ${getVarianceColor(metric.variance)}`}>
-                    {metric.variance}
-                    {getVarianceIcon(metric.variance)}
+                  <td className="border border-border p-2 text-center">
+                    <Tooltip>
+                      <TooltipTrigger>
+                        {Math.round(metric.actual)}
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-[350px]">
+                        <div className="text-sm">
+                          <div className="font-semibold mb-1">Actual Agents Calculation</div>
+                          <div className="mb-1">Formula:</div>
+                          <code className="block bg-muted p-1 rounded mb-2">
+                            Actual = Raw Agents × (1 - OutOfOfficeShrinkage) × (1 - InOfficeShrinkage) × (1 - BillableBreak)
+                          </code>
+                          
+                          <div className="text-xs space-y-1 mt-2">
+                            <div className="font-medium">Values:</div>
+                            <div>Raw Agents = {(metric.actual / 
+                              ((1 - configData.outOfOfficeShrinkage/100) * 
+                              (1 - configData.inOfficeShrinkage/100) * 
+                              (1 - configData.billableBreak/100))).toFixed(2)}</div>
+                            <div>OutOfOfficeShrinkage = {configData.outOfOfficeShrinkage}% ({(configData.outOfOfficeShrinkage/100).toFixed(2)})</div>
+                            <div>InOfficeShrinkage = {configData.inOfficeShrinkage}% ({(configData.inOfficeShrinkage/100).toFixed(2)})</div>
+                            <div>BillableBreak = {configData.billableBreak}% ({(configData.billableBreak/100).toFixed(2)})</div>
+                            
+                            <div className="font-medium mt-2">Calculation:</div>
+                            <div>
+                              {(metric.actual / 
+                                ((1 - configData.outOfOfficeShrinkage/100) * 
+                                (1 - configData.inOfficeShrinkage/100) * 
+                                (1 - configData.billableBreak/100))).toFixed(2)}
+                              × {(1 - configData.outOfOfficeShrinkage/100).toFixed(2)} 
+                              × {(1 - configData.inOfficeShrinkage/100).toFixed(2)} 
+                              × {(1 - configData.billableBreak/100).toFixed(2)}
+                            </div>
+                            <div>
+                              = {(metric.actual / 
+                                ((1 - configData.outOfOfficeShrinkage/100) * 
+                                (1 - configData.inOfficeShrinkage/100) * 
+                                (1 - configData.billableBreak/100))).toFixed(2)}
+                              × {(1 - configData.outOfOfficeShrinkage/100).toFixed(2)} 
+                              × {(1 - configData.inOfficeShrinkage/100).toFixed(2)} 
+                              × {(1 - configData.billableBreak/100).toFixed(2)}
+                            </div>
+                            <div>= {metric.actual.toFixed(2)}</div>
+                          </div>
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
                   </td>
-                  <td className="border border-border p-2 text-center">{formatValue(metric.callTrend, 'percentage')}</td>
-                  <td className="border border-border p-2 text-center">{metric.aht} min</td>
-                  <td className="border border-border p-2 text-center">{formatValue(metric.serviceLevel, 'percentage')}</td>
-                  <td className="border border-border p-2 text-center">{formatValue(metric.occupancy, 'percentage')}</td>
-                  <td className="border border-border p-2 text-center">{metric.influx}</td>
-                  <td className="border border-border p-2 text-center">{formatValue(metric.agentDistributionRatio, 'percentage')}</td>
+                  <td className="border border-border p-2 text-center">
+                    <Tooltip>
+                      <TooltipTrigger>{metric.requirement}</TooltipTrigger>
+                      <TooltipContent className="max-w-[350px]">
+                        <div className="text-sm">
+                          <div className="font-semibold mb-1">Requirement Calculation</div>
+                          <div className="mb-1">Formula:</div>
+                          <code className="block bg-muted p-1 rounded mb-2">
+                            Required = erlangAgents(SLA Target, Service Time, Traffic Intensity, AHT)
+                          </code>
+                          <div className="text-xs space-y-1 mt-2">
+                            <div className="font-medium">Values:</div>
+                            <div>SLA Target = {configData.slaTarget}%</div>
+                            <div>Service Time = {configData.serviceTime}s</div>
+                            <div>Traffic Intensity = {metric.raw.trafficIntensity.toFixed(2)} Erlangs</div>
+                            <div>AHT = {metric.raw.avgAHT.toFixed(2)}s</div>
+                            <div className="font-medium mt-2">Calculation:</div>
+                            <div>= erlangAgents({(configData.slaTarget / 100)}, {configData.serviceTime}, {metric.raw.trafficIntensity.toFixed(2)}, {metric.raw.avgAHT.toFixed(2)})</div>
+                            <div>= {metric.requirement}</div>
+                          </div>
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </td>
+                  <td className={`border border-border p-2 text-center ${getVarianceColor(metric.variance)}`}>
+                    <Tooltip>
+                      <TooltipTrigger>
+                        {metric.variance}
+                        {getVarianceIcon(metric.variance)}
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-[350px]">
+                        <div className="text-sm">
+                          <div className="font-semibold mb-1">Variance Calculation</div>
+                          <div className="mb-1">Formula:</div>
+                          <code className="block bg-muted p-1 rounded mb-2">
+                            Variance = Actual Agents - Required Agents
+                          </code>
+                          <div className="text-xs space-y-1 mt-2">
+                            <div className="font-medium">Values:</div>
+                            <div>Actual Agents = {metric.actual.toFixed(2)}</div>
+                            <div>Required Agents = {metric.requirement}</div>
+                            <div className="font-medium mt-2">Calculation:</div>
+                            <div>= {metric.actual.toFixed(2)} - {metric.requirement}</div>
+                            <div>= {metric.variance}</div>
+                          </div>
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </td>
+                  <td className="border border-border p-2 text-center">
+                    <Tooltip>
+                      <TooltipTrigger>{formatValue(metric.callTrend, 'percentage')}</TooltipTrigger>
+                      <TooltipContent className="max-w-[350px]">
+                        <div className="text-sm">
+                          <div className="font-semibold mb-1">Call Trend Calculation</div>
+                          <div className="mb-1">Formula:</div>
+                          <code className="block bg-muted p-1 rounded mb-2">
+                            Call Trend = (Effective Volume / Total Volume) * 100
+                          </code>
+                          <div className="text-xs space-y-1 mt-2">
+                            <div className="font-medium">Values:</div>
+                            <div>Effective Volume = {metric.raw.effectiveVolume.toFixed(2)}</div>
+                            <div>Total Volume = {metric.raw.totalVolume.toFixed(2)}</div>
+                            <div className="font-medium mt-2">Calculation:</div>
+                            <div>= ({metric.raw.effectiveVolume.toFixed(2)} / {metric.raw.totalVolume.toFixed(2)}) * 100</div>
+                            <div>= {metric.callTrend.toFixed(1)}%</div>
+                          </div>
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </td>
+                  <td className="border border-border p-2 text-center">
+                    <Tooltip>
+                      <TooltipTrigger>{metric.aht} min</TooltipTrigger>
+                      <TooltipContent className="max-w-[350px]">
+                        <div className="text-sm">
+                          <div className="font-semibold mb-1">AHT Calculation</div>
+                          <div className="mb-1">Formula:</div>
+                          <code className="block bg-muted p-1 rounded mb-2">
+                            AHT = (Total AHT / Valid Days) / 60
+                          </code>
+                          <div className="text-xs space-y-1 mt-2">
+                            <div className="font-medium">Values:</div>
+                            <div>Total AHT = {metric.raw.avgAHT.toFixed(2)}s</div>
+                            <div className="font-medium mt-2">Calculation:</div>
+                            <div>= {metric.raw.avgAHT.toFixed(2)} / 60</div>
+                            <div>= {metric.aht} min</div>
+                          </div>
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </td>
+                  <td className="border border-border p-2 text-center">
+                    <Tooltip>
+                      <TooltipTrigger>{formatValue(metric.serviceLevel, 'percentage')}</TooltipTrigger>
+                      <TooltipContent className="max-w-[350px]">
+                        <div className="text-sm">
+                          <div className="font-semibold mb-1">Service Level Calculation</div>
+                          <div className="mb-1">Formula:</div>
+                          <code className="block bg-muted p-1 rounded mb-2">
+                            SLA = calculateSLA(Effective Volume, AHT, Service Time, Actual Agents)
+                          </code>
+                          <div className="text-xs space-y-1 mt-2">
+                            <div className="font-medium">Values:</div>
+                            <div>Effective Volume = {metric.raw.effectiveVolume.toFixed(2)}</div>
+                            <div>AHT = {metric.raw.avgAHT.toFixed(2)}s</div>
+                            <div>Service Time = {configData.serviceTime}s</div>
+                            <div>Actual Agents = {metric.actual.toFixed(2)}</div>
+                            <div className="font-medium mt-2">Calculation:</div>
+                            <div>= calculateSLA({metric.raw.effectiveVolume.toFixed(2)}, {metric.raw.avgAHT.toFixed(2)}, {configData.serviceTime}, {metric.actual.toFixed(2)}) * 100</div>
+                            <div>= {metric.serviceLevel.toFixed(1)}%</div>
+                          </div>
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </td>
+                  <td className="border border-border p-2 text-center">
+                    <Tooltip>
+                      <TooltipTrigger>{formatValue(metric.occupancy, 'percentage')}</TooltipTrigger>
+                      <TooltipContent className="max-w-[350px]">
+                        <div className="text-sm">
+                          <div className="font-semibold mb-1">Occupancy Calculation</div>
+                          <div className="mb-1">Formula:</div>
+                          <code className="block bg-muted p-1 rounded mb-2">
+                            Occupancy = erlangUtilization(Traffic Intensity, Actual Agents)
+                          </code>
+                          <div className="text-xs space-y-1 mt-2">
+                            <div className="font-medium">Values:</div>
+                            <div>Traffic Intensity = {metric.raw.trafficIntensity.toFixed(2)} Erlangs</div>
+                            <div>Actual Agents = {metric.actual.toFixed(2)}</div>
+                            <div className="font-medium mt-2">Calculation:</div>
+                            <div>= erlangUtilization({metric.raw.trafficIntensity.toFixed(2)}, {metric.actual.toFixed(2)}) * 100</div>
+                            <div>= {metric.occupancy.toFixed(1)}%</div>
+                          </div>
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </td>
+                  <td className="border border-border p-2 text-center">
+                    <Tooltip>
+                      <TooltipTrigger>{metric.influx}</TooltipTrigger>
+                      <TooltipContent className="max-w-[350px]">
+                        <div className="text-sm">
+                          <div className="font-semibold mb-1">Influx Calculation</div>
+                          <div className="mb-1">Formula:</div>
+                          <code className="block bg-muted p-1 rounded mb-2">
+                            Influx = Effective Volume / 0.5
+                          </code>
+                          <div className="text-xs space-y-1 mt-2">
+                            <div className="font-medium">Values:</div>
+                            <div>Effective Volume = {metric.raw.effectiveVolume.toFixed(2)}</div>
+                            <div className="font-medium mt-2">Calculation:</div>
+                            <div>= {metric.raw.effectiveVolume.toFixed(2)} / 0.5</div>
+                            <div>= {metric.influx}</div>
+                          </div>
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </td>
+                  <td className="border border-border p-2 text-center">
+                    <Tooltip>
+                      <TooltipTrigger>{formatValue(metric.agentDistributionRatio, 'percentage')}</TooltipTrigger>
+                      <TooltipContent className="max-w-[350px]">
+                        <div className="text-sm">
+                          <div className="font-semibold mb-1">Agent Ratio Calculation</div>
+                          <div className="mb-1">Formula:</div>
+                          <code className="block bg-muted p-1 rounded mb-2">
+                            Agent Ratio = (Actual Agents / Total Agents) * 100
+                          </code>
+                          <div className="text-xs space-y-1 mt-2">
+                            <div className="font-medium">Values:</div>
+                            <div>Actual Agents = {metric.actual.toFixed(2)}</div>
+                            <div>Total Agents = {metric.raw.totalAgents.toFixed(2)}</div>
+                            <div className="font-medium mt-2">Calculation:</div>
+                            <div>= ({metric.actual.toFixed(2)} / {metric.raw.totalAgents.toFixed(2)}) * 100</div>
+                            <div>= {metric.agentDistributionRatio.toFixed(1)}%</div>
+                          </div>
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
-        
-        {/* Formulas Documentation - EXACT EXCEL SMORT FORMULAS */}
-        <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <div className="p-4 bg-muted/20 rounded-lg text-sm">
-            <h4 className="font-medium mb-3">Excel SMORT Cell Formulas:</h4>
-            <div className="space-y-2">
-              <p><strong>Effective Volume (BA7)</strong> = ((SUM(D7:AY7)*(1-$BA$1))*(1-$BB$1))*(1-$AZ$1)</p>
-              <p><strong>Required Agents (BB7)</strong> = IF(BD7&lt;=0,0,Agents($A$1,$B$1,BD7*2,BE7))</p>
-              <p><strong>Variance (BC7)</strong> = POWER((BA7-BB7),2)</p>
-              <p><strong>Call Trend</strong> = (Actual Volume ÷ Forecast Volume) × 100%</p>
-            </div>
-          </div>
-          
-          <div className="p-4 bg-muted/20 rounded-lg text-sm">
-            <h4 className="font-medium mb-3">Excel VBA Erlang Functions:</h4>
-            <div className="space-y-2">
-              <p><strong>Service Level (BF7)</strong> = SLA(BA7,$B$1,BD7*2,BE7)</p>
-              <p><strong>Occupancy (BG7)</strong> = Utilisation(BA7,BD7*2,BE7)</p>
-              <p><strong>Influx</strong> = Volume ÷ 0.5 hours (calls/hour)</p>
-              <p><strong>Agent Ratio</strong> = (Agents in Interval ÷ Total Agents) × 100%</p>
-              <p><strong>Traffic Intensity</strong> = (Volume × AHT) ÷ 3600 (Erlangs)</p>
-            </div>
-          </div>
         </div>
       </CardContent>
     </Card>

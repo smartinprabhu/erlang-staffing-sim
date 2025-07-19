@@ -42,9 +42,14 @@ export function StaffingChart({ volumeMatrix, ahtMatrix = [], rosterGrid, config
     
     const avgAHT = validDays > 0 ? totalAHT / validDays : configData.plannedAHT;
     
-    // Get rostered agents for this interval
-    const rosteredAgents = rosterGrid[intervalIndex] ? 
+    // Get rostered agents for this interval and apply shrinkage factors
+    const rawRosteredAgents = rosterGrid[intervalIndex] ? 
       rosterGrid[intervalIndex].reduce((sum, value) => sum + (parseInt(value) || 0), 0) : 0;
+      
+    const rosteredAgents = rawRosteredAgents *
+      (1 - configData.outOfOfficeShrinkage / 100) *
+      (1 - configData.inOfficeShrinkage / 100) *
+      (1 - configData.billableBreak / 100);
     
     // EXACT EXCEL SMORT CALCULATIONS:
     
@@ -65,7 +70,7 @@ export function StaffingChart({ volumeMatrix, ahtMatrix = [], rosterGrid, config
     const variance = calculateVariance(rosteredAgents, requiredAgents);
     
     return {
-      actual: rosteredAgents,
+      actual: Math.round(rosteredAgents),
       requirement: Math.round(requiredAgents * 10) / 10,
       variance: Math.round(variance * 10) / 10
     };
