@@ -64,7 +64,7 @@ export function InputConfigurationScreen({ onRunSimulation }: InputConfiguration
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-3">
           <Settings className="h-8 w-8 text-primary" />
-          <h1 className="text-3xl font-bold text-foreground">Contact Center Occupancy Modeling</h1>
+          <h1 className="text-3xl font-bold text-foreground"> Occupancy Modeling</h1>
         </div>
         <div className="flex gap-3">
           <Button variant="outline" className="gap-2">
@@ -196,6 +196,7 @@ export function InputConfigurationScreen({ onRunSimulation }: InputConfiguration
         volumeMatrix={volumeMatrix}
         ahtMatrix={ahtMatrix}
         rosterGrid={rosterGrid}
+        onRosterGridChange={setRosterGrid}
         configData={{
           weeks,
           fromDate,
