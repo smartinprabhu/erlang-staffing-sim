@@ -13,15 +13,19 @@ import {
   erlangUtilization
 } from "@/lib/erlang";
 
+import { Button } from "@/components/ui/button";
+import { Play } from "lucide-react";
+
 interface StaffingChartProps {
   volumeMatrix: number[][];
   ahtMatrix?: number[][];
   rosterGrid: string[][];
   configData: ConfigurationData;
   onRosterGridChange: (grid: string[][]) => void;
+  onRunSimulation: () => void;
 }
 
-export function StaffingChart({ volumeMatrix, ahtMatrix = [], rosterGrid, configData, onRosterGridChange }: StaffingChartProps) {
+export function StaffingChart({ volumeMatrix, ahtMatrix = [], rosterGrid, configData, onRosterGridChange, onRunSimulation }: StaffingChartProps) {
   const [shiftCounts, setShiftCounts] = useState<number[]>(Array(48).fill(17));
   const [rosterCounts, setRosterCounts] = useState<number[]>(Array(48).fill(0));
   
@@ -182,28 +186,32 @@ export function StaffingChart({ volumeMatrix, ahtMatrix = [], rosterGrid, config
 
   return (
     <Card className="mb-8">
-      <CardHeader>
-        <CardTitle>Live Interactive Chart: Actual vs Required (Excel SMORT Formula)</CardTitle>
-        <p className="text-sm text-muted-foreground">
-          All 48 intervals aligned vertically - Chart updates dynamically using exact Excel formulas
-        </p>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle>Live Interactive Chart: Actual vs Required </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            All 48 intervals aligned vertically - Chart updates dynamically using exact Excel formulas
+          </p>
+        </div>
+        <Button onClick={onRunSimulation} className="gap-2 bg-primary hover:bg-primary/90">
+          <Play className="h-4 w-4" />
+          View Insights
+        </Button>
       </CardHeader>
       <CardContent>
-        {/* Horizontally scrollable container for all 48 intervals */}
         <div className="overflow-x-auto border rounded-lg">
-          <div className="min-w-[2400px]"> {/* Ensure minimum width for 48 intervals */}
-            
+          <div className=" min-w-[2512px]">
             {/* Roster Grid - All 48 intervals */}
             <div className="border-b">
               <table className="w-full border-collapse text-xs">
                 <thead>
                   {/* Header with all 48 time intervals */}
                   <tr>
-                    <th className="border border-border p-1 text-left min-w-16 bg-[#475569] text-white font-medium text-xs sticky left-0 z-10">
-                      TIME
+                    <th className="border border-border p-1 text-left min-w-28 bg-[#475569] text-white font-medium text-xs sticky left-0 z-10">
+                    TIME
                     </th>
                     {intervals.map((interval, i) => (
-                      <th key={i} className="border border-border p-1 text-center min-w-12 bg-card">
+                      <th key={i} className="border border-border p-1 text-center bg-card" style={{ width: '50px' }}>
                         <div className="font-medium text-xs">{interval.excelFormat}</div>
                       </th>
                     ))}
@@ -211,7 +219,7 @@ export function StaffingChart({ volumeMatrix, ahtMatrix = [], rosterGrid, config
                   
                   {/* Shift row - All 48 intervals */}
                   <tr className="bg-[#475569]/20">
-                    <td className="border border-border p-1 text-center font-medium text-xs bg-[#475569] text-white sticky left-0 z-10">
+                    <td className="border border-border p-1 text-left min-w-28 font-medium text-xs bg-[#475569] text-white sticky left-0 z-10">
                       Shift
                     </td>
                     {intervals.map((_, i) => (
@@ -231,7 +239,7 @@ export function StaffingChart({ volumeMatrix, ahtMatrix = [], rosterGrid, config
                   
                   {/* Roster row - All 48 intervals */}
                   <tr className="bg-[#475569]/70">
-                    <td className="border border-border p-1 text-center font-medium text-xs bg-[#475569] text-white sticky left-0 z-10">
+                    <td className="border border-border p-1 text-left min-w-28 font-medium text-xs bg-[#475569] text-white sticky left-0 z-10">
                       Roster
                     </td>
                     {intervals.map((_, i) => (
@@ -257,7 +265,7 @@ export function StaffingChart({ volumeMatrix, ahtMatrix = [], rosterGrid, config
             {/* Chart Section - Aligned with intervals */}
             <div className="h-96 border-b">
               <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 80 }}>
+                <ComposedChart data={chartData} margin={{ top: 20, right: 10, left: 50, bottom: 20 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis 
                     dataKey="time" 
@@ -268,6 +276,7 @@ export function StaffingChart({ volumeMatrix, ahtMatrix = [], rosterGrid, config
                     height={60}
                     interval={0}
                     tick={{ fontSize: 8 }}
+                    ticks={chartData.map(entry => entry.time)}
                   />
                   <YAxis 
                     stroke="hsl(var(--foreground))"
@@ -281,6 +290,7 @@ export function StaffingChart({ volumeMatrix, ahtMatrix = [], rosterGrid, config
                       fontSize: "12px"
                     }}
                   />
+                  <Legend />
                   <Line 
                     type="monotone" 
                     dataKey="actual" 
@@ -314,26 +324,6 @@ export function StaffingChart({ volumeMatrix, ahtMatrix = [], rosterGrid, config
               </ResponsiveContainer>
             </div>
             
-            {/* Legend */}
-            <div className="py-2 flex justify-center gap-4 text-xs border-b">
-              <div className="flex items-center gap-1">
-                <div className="w-2 h-2 bg-blue-500 rounded-full" />
-                <span>Actual</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <div className="w-2 h-2 bg-red-500 rounded-full" />
-                <span>Required</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <div className="w-2 h-2 bg-yellow-500 rounded-full" />
-                <span>Positive Variance</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <div className="w-2 h-2 bg-red-500 rounded-full" />
-                <span>Negative Variance</span>
-              </div>
-            </div>
-            
             {/* Transposed CalculatedMetricsTable - Aligned with intervals */}
             <div>
               <TransposedCalculatedMetricsTable 
@@ -352,7 +342,6 @@ export function StaffingChart({ volumeMatrix, ahtMatrix = [], rosterGrid, config
                 weeks={configData.weeks}
               />
             </div>
-            
           </div>
         </div>
       </CardContent>

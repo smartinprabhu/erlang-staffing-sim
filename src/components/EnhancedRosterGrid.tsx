@@ -185,7 +185,7 @@ export function EnhancedRosterGrid({
           </Button>
         </div>
         <div className="text-sm text-muted-foreground">
-          <p>Excel SMORT Roster Grid: 48 intervals (12:30 AM to 12:00 AM) on both X and Y axes</p>
+          <p> Roster Grid: 48 intervals (12:30 AM to 12:00 AM) on both X and Y axes</p>
           <p className="mt-1">Total Rostered Agents: {totalRoster} | Includes Shift and Roster control rows</p>
         </div>
       </CardHeader>
@@ -298,7 +298,7 @@ export function EnhancedRosterGrid({
         <div className="mt-4 p-4 bg-muted rounded-lg text-sm">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <h4 className="font-medium mb-2">Excel SMORT Logic:</h4>
+              <h4 className="font-medium mb-2">  Logic:</h4>
               <p><strong>Shift Row:</strong> Number of consecutive intervals to fill</p>
               <p><strong>Roster Row:</strong> Agent count to fill at X-Y intersection</p>
               <p><strong>Grid Cells:</strong> Individual agent assignments</p>

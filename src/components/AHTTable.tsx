@@ -107,7 +107,7 @@ export function AHTTable({
           </div>
         </div>
         <div className="text-sm text-muted-foreground">
-          <p>Excel SMORT AHT Table: Enter Average Handle Time values in seconds per interval (12:30 AM to 12:00 AM)</p>
+          <p> AHT Table: Enter Average Handle Time values in seconds per interval (12:30 AM to 12:00 AM)</p>
           <p className="mt-1">Date Range: {fromDate} to {toDate} | {totalDays} days ({weeks} weeks)</p>
         </div>
       </CardHeader>
@@ -162,7 +162,7 @@ export function AHTTable({
           </table>
         </div>
         <div className="mt-4 p-4 bg-muted/20 rounded-lg text-sm">
-          <h4 className="font-medium mb-2">Excel SMORT AHT Formulas:</h4>
+          <h4 className="font-medium mb-2"> AHT Formulas:</h4>
           <div className="space-y-2">
             <p><strong>AHT Definition</strong> = (Talk Time + Hold Time + After-Call Work) ÷ Number of Calls</p>
             <p><strong>Traffic Intensity</strong> = (Volume × AHT) ÷ 3600 (Erlangs)</p>

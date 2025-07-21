@@ -37,14 +37,6 @@ export function OutputDashboard({ results, onBackToInput, configData }: OutputDa
         </div>
         <div className="flex gap-3">
           <Button variant="outline" className="gap-2">
-            <Upload className="h-4 w-4" />
-            Input Configuration
-          </Button>
-          <Button variant="default" className="gap-2">
-            <Download className="h-4 w-4" />
-            Output Dashboard
-          </Button>
-          <Button variant="outline" className="gap-2">
             <Download className="h-4 w-4" />
             Export CSV
           </Button>

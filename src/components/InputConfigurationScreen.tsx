@@ -6,7 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar, Settings, Upload, Download, Play, RotateCcw } from "lucide-react";
 import { ConfigurationData } from "./ContactCenterApp";
-import { DateRangeSelector } from "./DateRangeSelector";
 
 import { ForecastVolumeTable } from "./ForecastVolumeTable";
 import { AHTTable } from "./AHTTable";
@@ -58,6 +57,14 @@ export function InputConfigurationScreen({ onRunSimulation }: InputConfiguration
     setRosterGrid([]);
   };
 
+  const calculateDateRange = (selectedWeeks: 4 | 8 | 12) => {
+    const from = new Date(fromDate);
+    const to = new Date(from);
+    to.setDate(to.getDate() + (selectedWeeks * 7) - 1);
+    setToDate(to.toISOString().split('T')[0]);
+    setWeeks(selectedWeeks);
+  };
+
   return (
     <div className="min-h-screen bg-background p-6">
       {/* Header */}
@@ -68,40 +75,66 @@ export function InputConfigurationScreen({ onRunSimulation }: InputConfiguration
         </div>
         <div className="flex gap-3">
           <Button variant="outline" className="gap-2">
-            <Upload className="h-4 w-4" />
-            Input Configuration
-          </Button>
-          <Button variant="outline" className="gap-2">
-            <Download className="h-4 w-4" />
-            Output Dashboard
-          </Button>
-          <Button variant="outline" className="gap-2">
             <Download className="h-4 w-4" />
             Export CSV
           </Button>
         </div>
       </div>
 
-      {/* Date Range Selector */}
-      <DateRangeSelector 
-        weeks={weeks}
-        fromDate={fromDate}
-        toDate={toDate}
-        onWeeksChange={setWeeks}
-        onFromDateChange={setFromDate}
-        onToDateChange={setToDate}
-      />
-
       {/* Configuration Parameters */}
       <Card className="mb-8">
         <CardHeader>
           <CardTitle className="text-xl">Configuration Parameters</CardTitle>
           <p className="text-sm text-muted-foreground">
-            LOB: Contact Center | Forecast Range: {fromDate} to {toDate} | {weeks * 7} days ({weeks} weeks)
+            LOB: Phone | Reference Range: {fromDate} to {toDate} | {weeks * 7} days ({weeks} weeks)
           </p>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+            <div>
+              <Label htmlFor="from-date">From Date</Label>
+              <Input
+                id="from-date"
+                type="date"
+                value={fromDate}
+                onChange={(e) => setFromDate(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="to-date">To Date</Label>
+              <Input
+                id="to-date"
+                type="date"
+                value={toDate}
+                onChange={(e) => setToDate(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+            <div className="flex items-end gap-2">
+              <Button
+                variant={weeks === 4 ? "default" : "outline"}
+                size="sm"
+                onClick={() => calculateDateRange(4)}
+              >
+                4 Weeks
+              </Button>
+              <Button
+                variant={weeks === 8 ? "default" : "outline"}
+                size="sm"
+                onClick={() => calculateDateRange(8)}
+              >
+                8 Weeks
+              </Button>
+              <Button
+                variant={weeks === 12 ? "default" : "outline"}
+                size="sm"
+                onClick={() => calculateDateRange(12)}
+              >
+                12 Weeks
+              </Button>
+            </div>
+            <div></div>
             <div>
               <Label htmlFor="planned-aht">Planned AHT (seconds)</Label>
               <Input
@@ -183,12 +216,6 @@ export function InputConfigurationScreen({ onRunSimulation }: InputConfiguration
               </Button>
             </div>
           </div>
-          <div className="mt-6">
-            <Button onClick={handleRunSimulation} className="gap-2 bg-primary hover:bg-primary/90">
-              <Play className="h-4 w-4" />
-              Run Simulation
-            </Button>
-          </div>
         </CardContent>
       </Card>
       {/* Live Staffing Chart */}
@@ -197,6 +224,7 @@ export function InputConfigurationScreen({ onRunSimulation }: InputConfiguration
         ahtMatrix={ahtMatrix}
         rosterGrid={rosterGrid}
         onRosterGridChange={setRosterGrid}
+        onRunSimulation={handleRunSimulation}
         configData={{
           weeks,
           fromDate,
@@ -220,7 +248,7 @@ export function InputConfigurationScreen({ onRunSimulation }: InputConfiguration
       />
 
       {/* Calculated Metrics Table */}
-      <CalculatedMetricsTable
+      {/* <CalculatedMetricsTable
         volumeMatrix={volumeMatrix}
         ahtMatrix={ahtMatrix}
         rosterGrid={rosterGrid}
@@ -234,7 +262,7 @@ export function InputConfigurationScreen({ onRunSimulation }: InputConfiguration
           shiftDuration
         }}
         weeks={weeks}
-      />
+      /> */}
       {/* Forecast Volume Table */}
       <ForecastVolumeTable
         volumeMatrix={volumeMatrix}
