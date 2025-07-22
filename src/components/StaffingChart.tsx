@@ -230,12 +230,15 @@ export function StaffingChart({ volumeMatrix, ahtMatrix = [], rosterGrid, config
     
     const metrics = calculateMetricsForInterval(i);
     const isOverstaffed = metrics.actual > metrics.requirement;
+    const minValue = Math.min(metrics.actual, metrics.requirement);
+    const maxValue = Math.max(metrics.actual, metrics.requirement);
     
     return {
       time: timeLabel,
       actual: metrics.actual,
       required: metrics.requirement,
-      gap: metrics.gap,
+      gapBase: minValue, // Starting point of the gap bar
+      gapHeight: maxValue - minValue, // Height of the gap bar
       fill: isOverstaffed ? "#eab308" : "#ef4444" // yellow for overstaffed, red for understaffed
     };
   });
@@ -349,11 +352,12 @@ export function StaffingChart({ volumeMatrix, ahtMatrix = [], rosterGrid, config
                       fontSize: "12px"
                     }}
                     formatter={(value, name) => {
-                      if (name === 'gap') {
-                        const entry = chartData.find(d => d.time === value);
+                      if (name === 'Staffing Gap') {
+                        const entry = chartData.find(d => d.gapHeight === value);
                         const isOverstaffed = entry && entry.actual > entry.required;
                         return [value, isOverstaffed ? 'Overstaffed' : 'Understaffed'];
                       }
+                      if (name === 'gapBase') return null; // Hide the transparent base bar from tooltip
                       return [value, name];
                     }}
                   />
@@ -376,9 +380,10 @@ export function StaffingChart({ volumeMatrix, ahtMatrix = [], rosterGrid, config
                     dot={{ fill: "#ef4444", strokeWidth: 1, r: 2 }}
                   />
                   <Bar 
-                    dataKey="gap" 
+                    dataKey="gapHeight" 
                     name="Staffing Gap"
                     opacity={0.6}
+                    stackId="gap"
                   >
                     {chartData.map((entry, index) => (
                       <Cell 
@@ -387,6 +392,11 @@ export function StaffingChart({ volumeMatrix, ahtMatrix = [], rosterGrid, config
                       />
                     ))}
                   </Bar>
+                  <Bar 
+                    dataKey="gapBase" 
+                    fill="transparent"
+                    stackId="gap"
+                  />
                 </ComposedChart>
               </ResponsiveContainer>
             </div>
