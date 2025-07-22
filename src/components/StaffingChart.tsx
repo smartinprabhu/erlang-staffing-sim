@@ -229,28 +229,24 @@ export function StaffingChart({ volumeMatrix, ahtMatrix = [], rosterGrid, config
     const timeLabel = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
     
     const metrics = calculateMetricsForInterval(i);
-    const isOverstaffed = metrics.actual > metrics.requirement;
-    const minValue = Math.min(metrics.actual, metrics.requirement);
-    const maxValue = Math.max(metrics.actual, metrics.requirement);
-    const gapHeight = Math.abs(metrics.actual - metrics.requirement);
+    
+    // Helper arrays for composite chart
+    const gapBottom = Math.min(metrics.actual, metrics.requirement);
+    const surplus = metrics.actual >= metrics.requirement ? metrics.actual - metrics.requirement : 0;
+    const shortfall = metrics.actual < metrics.requirement ? metrics.requirement - metrics.actual : 0;
+    const isOverstaffed = metrics.actual >= metrics.requirement;
     
     return {
       time: timeLabel,
       actual: metrics.actual,
       required: metrics.requirement,
-      gapHeight: gapHeight, // Height of the gap bar
-      gapBase: minValue, // Base position for the gap bar
+      gapBottom: gapBottom, // Transparent base for stacking
+      surplus: surplus, // Yellow bars for overstaffing
+      shortfall: shortfall, // Red bars for understaffing
       isOverstaffed: isOverstaffed,
       variance: metrics.actual - metrics.requirement
     };
   });
-
-  // Custom bar component for conditional coloring
-  const CustomBar = (props: any) => {
-    const { payload } = props;
-    const fill = payload?.isOverstaffed ? "#eab308" : "#ef4444"; // Yellow for overstaffed, red for understaffed
-    return <Bar {...props} fill={fill} />;
-  };
 
   return (
     <Card className="mb-8">
@@ -336,7 +332,7 @@ export function StaffingChart({ volumeMatrix, ahtMatrix = [], rosterGrid, config
             {/* Chart Section - Aligned with intervals */}
             <div className="h-96 border-b">
               <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={chartData} margin={{ top: 20, right: 10, left: 50, bottom: 20 }}>
+                <ComposedChart data={chartData} margin={{ top: 20, right: 30, left: 50, bottom: 60 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis 
                     dataKey="time" 
@@ -348,10 +344,17 @@ export function StaffingChart({ volumeMatrix, ahtMatrix = [], rosterGrid, config
                     interval={0}
                     tick={{ fontSize: 8 }}
                     ticks={chartData.map(entry => entry.time)}
+                    label={{ 
+                      value: 'Time', 
+                      position: 'insideBottom', 
+                      offset: -10,
+                      style: { textAnchor: 'middle', fontSize: '12px' }
+                    }}
                   />
                   <YAxis 
                     stroke="hsl(var(--foreground))"
                     fontSize={10}
+                    label={{ value: 'Staff Count', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fontSize: '12px' } }}
                   />
                   <Tooltip 
                     content={({ active, payload, label }) => {
@@ -365,8 +368,8 @@ export function StaffingChart({ volumeMatrix, ahtMatrix = [], rosterGrid, config
                             <p className={`${data.variance >= 0 ? 'text-yellow-400' : 'text-red-400'}`}>
                               {`Variance: ${data.variance >= 0 ? '+' : ''}${data.variance.toFixed(1)}`}
                             </p>
-                            <p className={`${data.isOverstaffed ? 'text-yellow-400' : 'text-red-400'}`}>
-                              {`Status: ${data.isOverstaffed ? 'Overstaffed' : 'Understaffed'}`}
+                            <p className={`${data.surplus > 0 ? 'text-yellow-400' : 'text-red-400'}`}>
+                              {`Status: ${data.surplus > 0 ? 'Surplus' : 'Shortfall'}`}
                             </p>
                           </div>
                         );
@@ -376,19 +379,31 @@ export function StaffingChart({ volumeMatrix, ahtMatrix = [], rosterGrid, config
                   />
                   <Legend />
                   
-                  {/* Gap bars - rendered first so lines appear on top */}
+                  {/* Stacked bars for gap visualization */}
+                  {/* Transparent base bar */}
                   <Bar 
-                    dataKey="gapHeight" 
-                    name="Staffing Gap"
+                    dataKey="gapBottom" 
+                    name="Base"
                     stackId="gap"
-                  >
-                    {chartData.map((entry, index) => (
-                      <Cell 
-                        key={`gap-cell-${index}`} 
-                        fill={entry.isOverstaffed ? "#eab308" : "#ef4444"}
-                      />
-                    ))}
-                  </Bar>
+                    fill="transparent"
+                    legendType="none"
+                  />
+                  
+                  {/* Surplus bars (yellow) */}
+                  <Bar 
+                    dataKey="surplus" 
+                    name="Surplus"
+                    stackId="gap"
+                    fill="#eab308"
+                  />
+                  
+                  {/* Shortfall bars (red) */}
+                  <Bar 
+                    dataKey="shortfall" 
+                    name="Shortfall"
+                    stackId="gap"
+                    fill="#ef4444"
+                  />
                   
                   {/* Actual line - Blue */}
                   <Line 
