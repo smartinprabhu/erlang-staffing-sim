@@ -25,7 +25,6 @@ interface CalculatedMetricsTableProps {
     inOfficeShrinkage: number;
     outOfOfficeShrinkage: number;
     billableBreak: number;
-    shiftDuration: string;
   };
   weeks: 4 | 8 | 12;
 }

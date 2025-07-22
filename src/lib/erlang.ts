@@ -76,7 +76,7 @@ export function calculateAgents(slaTarget: number, serviceTime: number, traffic:
   
   // Iterate to find minimum agents to meet SLA
   for (let n = agents; n <= agents + 50; n++) {
-    const sla = calculateSLA(slaTarget, serviceTime, traffic, aht, n);
+    const sla = calculateSLA(traffic, aht, serviceTime, n);
     if (sla >= slaTarget) {
       return n;
     }

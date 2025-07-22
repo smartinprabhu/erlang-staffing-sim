@@ -209,10 +209,9 @@ function calculateSimulation(data: ConfigurationData): SimulationResults {
       );
       
       const sla = calculateSLA(
-        data.slaTarget / 100,
-        data.serviceTime,
         effectiveVolume,
         data.plannedAHT,
+        data.serviceTime,
         rosteredAgents
       ) * 100;
       
