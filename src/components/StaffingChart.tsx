@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConfigurationData } from "./ContactCenterApp";
 import { TransposedCalculatedMetricsTable } from "./TransposedCalculatedMetricsTable";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend, Bar, ComposedChart, Tooltip, Cell } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend, Bar, ComposedChart, Tooltip, Cell, ReferenceLine } from "recharts";
 import {
   calculateEffectiveVolume,
   calculateRequiredAgents,
@@ -232,17 +232,25 @@ export function StaffingChart({ volumeMatrix, ahtMatrix = [], rosterGrid, config
     const isOverstaffed = metrics.actual > metrics.requirement;
     const minValue = Math.min(metrics.actual, metrics.requirement);
     const maxValue = Math.max(metrics.actual, metrics.requirement);
-    const difference = metrics.actual - metrics.requirement;
+    const gapHeight = Math.abs(metrics.actual - metrics.requirement);
+    
     return {
       time: timeLabel,
       actual: metrics.actual,
       required: metrics.requirement,
-      gapBase: minValue, // Starting point of the gap bar
-      gapHeight: maxValue - minValue, // Height of the gap bar
-      fill: isOverstaffed ? "#eab308" : "#ef4444", // yellow for overstaffed, red for understaffed
-      difference: difference
+      gapHeight: gapHeight, // Height of the gap bar
+      gapBase: minValue, // Base position for the gap bar
+      isOverstaffed: isOverstaffed,
+      variance: metrics.actual - metrics.requirement
     };
   });
+
+  // Custom bar component for conditional coloring
+  const CustomBar = (props: any) => {
+    const { payload } = props;
+    const fill = payload?.isOverstaffed ? "#eab308" : "#ef4444"; // Yellow for overstaffed, red for understaffed
+    return <Bar {...props} fill={fill} />;
+  };
 
   return (
     <Card className="mb-8">
@@ -346,23 +354,6 @@ export function StaffingChart({ volumeMatrix, ahtMatrix = [], rosterGrid, config
                     fontSize={10}
                   />
                   <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: "hsl(var(--card))", 
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: "8px",
-                      fontSize: "12px"
-                    }}
-                    formatter={(value, name, props) => {
-                      if (name === 'Staffing Gap' && props) {
-                        const entry = chartData.find(d => d.gapHeight === value);
-                        const isOverstaffed = entry && entry.actual > entry.required;
-                        return [value, isOverstaffed ? 'Overstaffed' : 'Understaffed'];
-                      }
-                      if (name === 'gapBase') return null; // Hide the transparent base bar from tooltip
-                      return [value, name];
-                    }}
-                  />
-                  <Tooltip 
                     content={({ active, payload, label }) => {
                       if (active && payload && payload.length) {
                         const data = payload[0].payload;
@@ -371,8 +362,11 @@ export function StaffingChart({ volumeMatrix, ahtMatrix = [], rosterGrid, config
                             <p className="font-medium">{`Time: ${label}`}</p>
                             <p className="text-blue-400">{`Actual: ${data.actual}`}</p>
                             <p className="text-red-400">{`Required: ${data.required}`}</p>
-                            <p className={`${data.difference >= 0 ? 'text-yellow-400' : 'text-red-400'}`}>
-                              {`Difference: ${data.difference >= 0 ? '+' : ''}${data.difference.toFixed(1)}`}
+                            <p className={`${data.variance >= 0 ? 'text-yellow-400' : 'text-red-400'}`}>
+                              {`Variance: ${data.variance >= 0 ? '+' : ''}${data.variance.toFixed(1)}`}
+                            </p>
+                            <p className={`${data.isOverstaffed ? 'text-yellow-400' : 'text-red-400'}`}>
+                              {`Status: ${data.isOverstaffed ? 'Overstaffed' : 'Understaffed'}`}
                             </p>
                           </div>
                         );
@@ -381,6 +375,22 @@ export function StaffingChart({ volumeMatrix, ahtMatrix = [], rosterGrid, config
                     }}
                   />
                   <Legend />
+                  
+                  {/* Gap bars - rendered first so lines appear on top */}
+                  <Bar 
+                    dataKey="gapHeight" 
+                    name="Staffing Gap"
+                    stackId="gap"
+                  >
+                    {chartData.map((entry, index) => (
+                      <Cell 
+                        key={`gap-cell-${index}`} 
+                        fill={entry.isOverstaffed ? "#eab308" : "#ef4444"}
+                      />
+                    ))}
+                  </Bar>
+                  
+                  {/* Actual line - Blue */}
                   <Line 
                     type="monotone" 
                     dataKey="actual" 
@@ -388,29 +398,19 @@ export function StaffingChart({ volumeMatrix, ahtMatrix = [], rosterGrid, config
                     strokeWidth={2}
                     name="Actual"
                     dot={{ fill: "#3b82f6", strokeWidth: 1, r: 3 }}
+                    connectNulls={false}
                   />
+                  
+                  {/* Requirement line - Red */}
                   <Line 
                     type="monotone" 
                     dataKey="required" 
                     stroke="#ef4444" 
                     strokeWidth={2}
-                    strokeDasharray="4 2"
                     name="Required"
                     dot={{ fill: "#ef4444", strokeWidth: 1, r: 3 }}
+                    connectNulls={false}
                   />
-                  <Bar 
-                    dataKey="gapHeight" 
-                    name="Staffing Gap"
-                    opacity={0.6}
-                    stackId="gap"
-                  >
-                    {chartData.map((entry, index) => (
-                      <Cell 
-                        key={`cell-${index}`} 
-                        fill={entry.fill}
-                      />
-                    ))}
-                  </Bar>
                 </ComposedChart>
               </ResponsiveContainer>
             </div>
