@@ -3,8 +3,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConfigurationData } from "./ContactCenterApp";
 import { TransposedCalculatedMetricsTable } from "./TransposedCalculatedMetricsTable";
-import { Chart as ChartJS, BarElement, CategoryScale, LinearScale, LineElement, PointElement, Tooltip, Legend } from 'chart.js';
-import { Chart } from 'react-chartjs-2';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend, Bar, ComposedChart, Tooltip, Cell } from "recharts";
 import {
   calculateEffectiveVolume,
   calculateRequiredAgents,
@@ -18,16 +17,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Play } from "lucide-react";
 import { LiveMetricsDisplay } from "./LiveMetricsDisplay";
-
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  LineElement,
-  PointElement,
-  Tooltip,
-  Legend
-);
 
 interface StaffingChartProps {
   volumeMatrix: number[][];
@@ -240,130 +229,19 @@ export function StaffingChart({ volumeMatrix, ahtMatrix = [], rosterGrid, config
     const timeLabel = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
     
     const metrics = calculateMetricsForInterval(i);
-    
-    // Helper arrays for composite chart
-    const gapBottom = Math.min(metrics.actual, metrics.requirement);
-    const surplus = metrics.actual >= metrics.requirement ? metrics.actual - metrics.requirement : 0;
-    const shortfall = metrics.actual < metrics.requirement ? metrics.requirement - metrics.actual : 0;
-    const isOverstaffed = metrics.actual >= metrics.requirement;
+    const isOverstaffed = metrics.actual > metrics.requirement;
+    const minValue = Math.min(metrics.actual, metrics.requirement);
+    const maxValue = Math.max(metrics.actual, metrics.requirement);
     
     return {
       time: timeLabel,
       actual: metrics.actual,
       required: metrics.requirement,
-      gapBottom: gapBottom, // Transparent base for stacking
-      surplus: surplus, // Yellow bars for overstaffing
-      shortfall: shortfall, // Red bars for understaffing
-      isOverstaffed: isOverstaffed,
-      variance: metrics.actual - metrics.requirement
+      gapBase: minValue, // Starting point of the gap bar
+      gapHeight: maxValue - minValue, // Height of the gap bar
+      fill: isOverstaffed ? "#eab308" : "#ef4444" // yellow for overstaffed, red for understaffed
     };
   });
-
-  // 1. Compute helper arrays
-  const gapBottom = chartData.map((d) => Math.min(d.actual, d.requirement));
-  const surplus = chartData.map((d) => (d.actual >= d.requirement ? d.actual - d.requirement : 0));
-  const shortfall = chartData.map((d) => (d.actual < d.requirement ? d.requirement - d.actual : 0));
-
-  // 2. Build chartData for Chart.js
-  const chartJsData = {
-    labels: chartData.map((d) => d.time),
-    datasets: [
-      // Invisible base for stacking
-      {
-        label: 'Gap Bottom',
-        type: 'bar' as const,
-        data: gapBottom,
-        backgroundColor: 'transparent',
-        stack: 'gap',
-      },
-      // Surplus bars (yellow)
-      {
-        label: 'Surplus',
-        type: 'bar' as const,
-        data: surplus,
-        backgroundColor: '#eab308',
-        stack: 'gap',
-      },
-      // Shortfall bars (red)
-      {
-        label: 'Shortfall',
-        type: 'bar' as const,
-        data: shortfall,
-        backgroundColor: '#ef4444',
-        stack: 'gap',
-      },
-      // Actual line
-      {
-        label: 'Actual',
-        type: 'line' as const,
-        data: chartData.map((d) => d.actual),
-        borderColor: '#3b82f6',
-        backgroundColor: '#3b82f6',
-        fill: false,
-        tension: 0.3,
-        pointRadius: 2,
-      },
-      // Requirement line
-      {
-        label: 'Requirement',
-        type: 'line' as const,
-        data: chartData.map((d) => d.requirement),
-        borderColor: '#ef4444',
-        backgroundColor: '#ef4444',
-        fill: false,
-        tension: 0.3,
-        pointRadius: 2,
-      },
-    ],
-  };
-
-  // 3. Build chartOptions
-  const chartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { 
-        display: true, 
-        position: 'top' as const,
-        labels: {
-          filter: (legendItem: any) => legendItem.text !== 'Gap Bottom'
-        }
-      },
-      tooltip: { 
-        mode: 'index' as const, 
-        intersect: false,
-        callbacks: {
-          afterBody: (context: any) => {
-            const dataIndex = context[0].dataIndex;
-            const data = chartData[dataIndex];
-            return [
-              `Variance: ${data.variance >= 0 ? '+' : ''}${data.variance.toFixed(1)}`,
-              `Status: ${data.surplus > 0 ? 'Surplus' : 'Shortfall'}`
-            ];
-          }
-        }
-      },
-    },
-    scales: {
-      x: {
-        title: { display: true, text: 'Time' },
-        grid: { display: true, drawOnChartArea: false },
-        ticks: {
-          maxRotation: 45,
-          minRotation: 45,
-          font: {
-            size: 8
-          }
-        }
-      },
-      y: {
-        title: { display: true, text: 'Staff Count' },
-        grid: { display: true },
-        beginAtZero: true
-      },
-    },
-    interaction: { mode: 'index' as const, intersect: false },
-  };
 
   return (
     <Card className="mb-8">
@@ -448,7 +326,79 @@ export function StaffingChart({ volumeMatrix, ahtMatrix = [], rosterGrid, config
             
             {/* Chart Section - Aligned with intervals */}
             <div className="h-96 border-b">
-              <Chart type="bar" data={chartJsData} options={chartOptions} />
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={chartData} margin={{ top: 20, right: 10, left: 50, bottom: 20 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis 
+                    dataKey="time" 
+                    stroke="hsl(var(--foreground))"
+                    fontSize={8}
+                    angle={-45}
+                    textAnchor="end"
+                    height={60}
+                    interval={0}
+                    tick={{ fontSize: 8 }}
+                    ticks={chartData.map(entry => entry.time)}
+                  />
+                  <YAxis 
+                    stroke="hsl(var(--foreground))"
+                    fontSize={10}
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: "hsl(var(--card))", 
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: "8px",
+                      fontSize: "12px"
+                    }}
+                    formatter={(value, name) => {
+                      if (name === 'Staffing Gap') {
+                        const entry = chartData.find(d => d.gapHeight === value);
+                        const isOverstaffed = entry && entry.actual > entry.required;
+                        return [value, isOverstaffed ? 'Overstaffed' : 'Understaffed'];
+                      }
+                      if (name === 'gapBase') return null; // Hide the transparent base bar from tooltip
+                      return [value, name];
+                    }}
+                  />
+                  <Legend />
+                  <Line 
+                    type="monotone" 
+                    dataKey="actual" 
+                    stroke="#3b82f6" 
+                    strokeWidth={2}
+                    name="Actual"
+                    dot={{ fill: "#3b82f6", strokeWidth: 1, r: 2 }}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="required" 
+                    stroke="#ef4444" 
+                    strokeWidth={2}
+                    strokeDasharray="4 2"
+                    name="Required"
+                    dot={{ fill: "#ef4444", strokeWidth: 1, r: 2 }}
+                  />
+                  <Bar 
+                    dataKey="gapHeight" 
+                    name="Staffing Gap"
+                    opacity={0.6}
+                    stackId="gap"
+                  >
+                    {chartData.map((entry, index) => (
+                      <Cell 
+                        key={`cell-${index}`} 
+                        fill={entry.fill}
+                      />
+                    ))}
+                  </Bar>
+                  <Bar 
+                    dataKey="gapBase" 
+                    fill="transparent"
+                    stackId="gap"
+                  />
+                </ComposedChart>
+              </ResponsiveContainer>
             </div>
             
             {/* Transposed CalculatedMetricsTable - Aligned with intervals */}
