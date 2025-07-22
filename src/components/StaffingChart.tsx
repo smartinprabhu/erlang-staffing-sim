@@ -232,14 +232,15 @@ export function StaffingChart({ volumeMatrix, ahtMatrix = [], rosterGrid, config
     const isOverstaffed = metrics.actual > metrics.requirement;
     const minValue = Math.min(metrics.actual, metrics.requirement);
     const maxValue = Math.max(metrics.actual, metrics.requirement);
-    
+    const difference = metrics.actual - metrics.requirement;
     return {
       time: timeLabel,
       actual: metrics.actual,
       required: metrics.requirement,
       gapBase: minValue, // Starting point of the gap bar
       gapHeight: maxValue - minValue, // Height of the gap bar
-      fill: isOverstaffed ? "#eab308" : "#ef4444" // yellow for overstaffed, red for understaffed
+      fill: isOverstaffed ? "#eab308" : "#ef4444", // yellow for overstaffed, red for understaffed
+      difference: difference
     };
   });
 
@@ -351,14 +352,32 @@ export function StaffingChart({ volumeMatrix, ahtMatrix = [], rosterGrid, config
                       borderRadius: "8px",
                       fontSize: "12px"
                     }}
-                    formatter={(value, name) => {
-                      if (name === 'Staffing Gap') {
+                    formatter={(value, name, props) => {
+                      if (name === 'Staffing Gap' && props) {
                         const entry = chartData.find(d => d.gapHeight === value);
                         const isOverstaffed = entry && entry.actual > entry.required;
                         return [value, isOverstaffed ? 'Overstaffed' : 'Understaffed'];
                       }
                       if (name === 'gapBase') return null; // Hide the transparent base bar from tooltip
                       return [value, name];
+                    }}
+                  />
+                  <Tooltip 
+                    content={({ active, payload, label }) => {
+                      if (active && payload && payload.length) {
+                        const data = payload[0].payload;
+                        return (
+                          <div className="bg-card border border-border rounded-lg p-3 shadow-lg">
+                            <p className="font-medium">{`Time: ${label}`}</p>
+                            <p className="text-blue-400">{`Actual: ${data.actual}`}</p>
+                            <p className="text-red-400">{`Required: ${data.required}`}</p>
+                            <p className={`${data.difference >= 0 ? 'text-yellow-400' : 'text-red-400'}`}>
+                              {`Difference: ${data.difference >= 0 ? '+' : ''}${data.difference.toFixed(1)}`}
+                            </p>
+                          </div>
+                        );
+                      }
+                      return null;
                     }}
                   />
                   <Legend />
@@ -368,7 +387,7 @@ export function StaffingChart({ volumeMatrix, ahtMatrix = [], rosterGrid, config
                     stroke="#3b82f6" 
                     strokeWidth={2}
                     name="Actual"
-                    dot={{ fill: "#3b82f6", strokeWidth: 1, r: 2 }}
+                    dot={{ fill: "#3b82f6", strokeWidth: 1, r: 3 }}
                   />
                   <Line 
                     type="monotone" 
@@ -377,7 +396,7 @@ export function StaffingChart({ volumeMatrix, ahtMatrix = [], rosterGrid, config
                     strokeWidth={2}
                     strokeDasharray="4 2"
                     name="Required"
-                    dot={{ fill: "#ef4444", strokeWidth: 1, r: 2 }}
+                    dot={{ fill: "#ef4444", strokeWidth: 1, r: 3 }}
                   />
                   <Bar 
                     dataKey="gapHeight" 
@@ -392,11 +411,6 @@ export function StaffingChart({ volumeMatrix, ahtMatrix = [], rosterGrid, config
                       />
                     ))}
                   </Bar>
-                  <Bar 
-                    dataKey="gapBase" 
-                    fill="transparent"
-                    stackId="gap"
-                  />
                 </ComposedChart>
               </ResponsiveContainer>
             </div>
