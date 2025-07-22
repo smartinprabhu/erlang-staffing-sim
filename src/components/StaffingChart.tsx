@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConfigurationData } from "./ContactCenterApp";
@@ -15,6 +16,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Play } from "lucide-react";
+import { LiveMetricsDisplay } from "./LiveMetricsDisplay";
 
 interface StaffingChartProps {
   volumeMatrix: number[][];
@@ -28,6 +30,8 @@ interface StaffingChartProps {
 export function StaffingChart({ volumeMatrix, ahtMatrix = [], rosterGrid, configData, onRosterGridChange, onRunSimulation }: StaffingChartProps) {
   const [shiftCounts, setShiftCounts] = useState<number[]>(Array(48).fill(17));
   const [rosterCounts, setRosterCounts] = useState<number[]>(Array(48).fill(0));
+  const [liveSLA, setLiveSLA] = useState(0);
+  const [liveOccupancy, setLiveOccupancy] = useState(0);
   
   // Generate time intervals exactly as Excel SMORT (48 intervals starting from 12:30 AM to 12:00 AM)
   const intervals = Array.from({ length: 48 }, (_, i) => {
@@ -58,6 +62,57 @@ export function StaffingChart({ volumeMatrix, ahtMatrix = [], rosterGrid, config
     }
     setRosterCounts(newRosterCounts);
   }, [rosterGrid]);
+
+  // Calculate live SLA and Occupancy
+  useEffect(() => {
+    const totalDays = configData.weeks * 7;
+    let totalVolumeAll = 0;
+    let totalSLAWeighted = 0;
+    let totalOccupancyWeighted = 0;
+    let totalStaffingAll = 0;
+
+    for (let intervalIndex = 0; intervalIndex < 48; intervalIndex++) {
+      let totalVolume = 0;
+      let validDays = 0;
+      
+      for (let dayIndex = 0; dayIndex < totalDays; dayIndex++) {
+        const volume = volumeMatrix[dayIndex]?.[intervalIndex] || 0;
+        if (volume > 0) {
+          totalVolume += volume;
+          validDays++;
+        }
+      }
+      
+      const rosteredAgents = rosterGrid[intervalIndex] ? 
+        rosterGrid[intervalIndex].reduce((sum, value) => sum + (parseInt(value) || 0), 0) : 0;
+      
+      const effectiveVolume = calculateEffectiveVolume(
+        totalVolume,
+        configData.outOfOfficeShrinkage,
+        configData.inOfficeShrinkage,
+        configData.billableBreak
+      );
+      
+      const trafficIntensity = (effectiveVolume * configData.plannedAHT) / 3600;
+      const sla = rosteredAgents > 0 ? 
+        calculateSLA(effectiveVolume, configData.plannedAHT, configData.serviceTime, rosteredAgents) * 100 : 0;
+      const occupancy = rosteredAgents > 0 ? 
+        erlangUtilization(trafficIntensity, rosteredAgents) * 100 : 0;
+      
+      if (totalVolume > 0 || rosteredAgents > 0) {
+        totalVolumeAll += effectiveVolume;
+        totalSLAWeighted += sla * effectiveVolume;
+        totalOccupancyWeighted += occupancy * rosteredAgents;
+        totalStaffingAll += rosteredAgents;
+      }
+    }
+    
+    const finalSLA = totalVolumeAll > 0 ? totalSLAWeighted / totalVolumeAll : 0;
+    const finalOccupancy = totalStaffingAll > 0 ? totalOccupancyWeighted / totalStaffingAll : 0;
+    
+    setLiveSLA(finalSLA);
+    setLiveOccupancy(finalOccupancy);
+  }, [volumeMatrix, rosterGrid, configData]);
   
   const updateShiftCount = (colIndex: number, value: number) => {
     const newShiftCounts = [...shiftCounts];
@@ -161,26 +216,27 @@ export function StaffingChart({ volumeMatrix, ahtMatrix = [], rosterGrid, config
     return {
       actual: Math.round(rosteredAgents),
       requirement: Math.round(requiredAgents * 10) / 10,
-      variance: Math.round(variance * 10) / 10
+      variance: Math.round(variance * 10) / 10,
+      gap: Math.abs(rosteredAgents - requiredAgents)
     };
   };
 
-  // Generate chart data for all 48 intervals (Excel SMORT format: 12:30 AM to 12:00 AM)
+  // Generate chart data for all 48 intervals with gap visualization
   const chartData = Array.from({ length: 48 }, (_, i) => {
-    // Excel starts at 12:30 AM (0:30), so we add 30 minutes to the base calculation
-    const totalMinutes = (i * 30) + 30; // Start from 30 minutes (12:30 AM)
-    const hour = Math.floor(totalMinutes / 60) % 24; // Wrap around at 24 hours
+    const totalMinutes = (i * 30) + 30;
+    const hour = Math.floor(totalMinutes / 60) % 24;
     const minute = totalMinutes % 60;
     const timeLabel = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
     
     const metrics = calculateMetricsForInterval(i);
+    const isOverstaffed = metrics.actual > metrics.requirement;
     
     return {
       time: timeLabel,
       actual: metrics.actual,
       required: metrics.requirement,
-      variance: metrics.variance,
-      fill: metrics.variance >= 0 ? "hsl(var(--chart-2))" : "hsl(var(--chart-1))"
+      gap: metrics.gap,
+      fill: isOverstaffed ? "#eab308" : "#ef4444" // yellow for overstaffed, red for understaffed
     };
   });
 
@@ -193,10 +249,13 @@ export function StaffingChart({ volumeMatrix, ahtMatrix = [], rosterGrid, config
             All 48 intervals aligned vertically - Chart updates dynamically using exact Excel formulas
           </p>
         </div>
-        <Button onClick={onRunSimulation} className="gap-2 bg-primary hover:bg-primary/90">
-          <Play className="h-4 w-4" />
-          View Insights
-        </Button>
+        <div className="flex items-center gap-4">
+          <LiveMetricsDisplay sla={liveSLA} occupancy={liveOccupancy} />
+          <Button onClick={onRunSimulation} className="gap-2 bg-primary hover:bg-primary/90">
+            <Play className="h-4 w-4" />
+            View Insights
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto border rounded-lg">
@@ -289,6 +348,14 @@ export function StaffingChart({ volumeMatrix, ahtMatrix = [], rosterGrid, config
                       borderRadius: "8px",
                       fontSize: "12px"
                     }}
+                    formatter={(value, name) => {
+                      if (name === 'gap') {
+                        const entry = chartData.find(d => d.time === value);
+                        const isOverstaffed = entry && entry.actual > entry.required;
+                        return [value, isOverstaffed ? 'Overstaffed' : 'Understaffed'];
+                      }
+                      return [value, name];
+                    }}
                   />
                   <Legend />
                   <Line 
@@ -309,14 +376,14 @@ export function StaffingChart({ volumeMatrix, ahtMatrix = [], rosterGrid, config
                     dot={{ fill: "#ef4444", strokeWidth: 1, r: 2 }}
                   />
                   <Bar 
-                    dataKey="variance" 
-                    name="Variance"
+                    dataKey="gap" 
+                    name="Staffing Gap"
                     opacity={0.6}
                   >
                     {chartData.map((entry, index) => (
                       <Cell 
                         key={`cell-${index}`} 
-                        fill={entry.variance >= 0 ? "#f59e0b" : "#ef4444"} 
+                        fill={entry.fill}
                       />
                     ))}
                   </Bar>
@@ -336,8 +403,7 @@ export function StaffingChart({ volumeMatrix, ahtMatrix = [], rosterGrid, config
                   serviceTime: configData.serviceTime,
                   inOfficeShrinkage: configData.inOfficeShrinkage,
                   outOfOfficeShrinkage: configData.outOfOfficeShrinkage,
-                  billableBreak: configData.billableBreak,
-                  shiftDuration: configData.shiftDuration
+                  billableBreak: configData.billableBreak
                 }}
                 weeks={configData.weeks}
               />

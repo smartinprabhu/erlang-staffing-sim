@@ -26,7 +26,6 @@ export type ConfigurationData = {
   inOfficeShrinkage: number;
   outOfOfficeShrinkage: number;
   billableBreak: number;
-  shiftDuration: string;
   
   // Volume matrix (48 intervals × days)
   volumeMatrix: number[][];
