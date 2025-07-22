@@ -3,7 +3,8 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConfigurationData } from "./ContactCenterApp";
 import { TransposedCalculatedMetricsTable } from "./TransposedCalculatedMetricsTable";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend, Bar, ComposedChart, Tooltip, Cell, ReferenceLine } from "recharts";
+import { Chart as ChartJS, BarElement, CategoryScale, LinearScale, LineElement, PointElement, Tooltip, Legend } from 'chart.js';
+import { Chart } from 'react-chartjs-2';
 import {
   calculateEffectiveVolume,
   calculateRequiredAgents,
@@ -17,6 +18,16 @@ import {
 import { Button } from "@/components/ui/button";
 import { Play } from "lucide-react";
 import { LiveMetricsDisplay } from "./LiveMetricsDisplay";
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  LineElement,
+  PointElement,
+  Tooltip,
+  Legend
+);
 
 interface StaffingChartProps {
   volumeMatrix: number[][];
@@ -248,6 +259,112 @@ export function StaffingChart({ volumeMatrix, ahtMatrix = [], rosterGrid, config
     };
   });
 
+  // 1. Compute helper arrays
+  const gapBottom = chartData.map((d) => Math.min(d.actual, d.requirement));
+  const surplus = chartData.map((d) => (d.actual >= d.requirement ? d.actual - d.requirement : 0));
+  const shortfall = chartData.map((d) => (d.actual < d.requirement ? d.requirement - d.actual : 0));
+
+  // 2. Build chartData for Chart.js
+  const chartJsData = {
+    labels: chartData.map((d) => d.time),
+    datasets: [
+      // Invisible base for stacking
+      {
+        label: 'Gap Bottom',
+        type: 'bar' as const,
+        data: gapBottom,
+        backgroundColor: 'transparent',
+        stack: 'gap',
+      },
+      // Surplus bars (yellow)
+      {
+        label: 'Surplus',
+        type: 'bar' as const,
+        data: surplus,
+        backgroundColor: '#eab308',
+        stack: 'gap',
+      },
+      // Shortfall bars (red)
+      {
+        label: 'Shortfall',
+        type: 'bar' as const,
+        data: shortfall,
+        backgroundColor: '#ef4444',
+        stack: 'gap',
+      },
+      // Actual line
+      {
+        label: 'Actual',
+        type: 'line' as const,
+        data: chartData.map((d) => d.actual),
+        borderColor: '#3b82f6',
+        backgroundColor: '#3b82f6',
+        fill: false,
+        tension: 0.3,
+        pointRadius: 2,
+      },
+      // Requirement line
+      {
+        label: 'Requirement',
+        type: 'line' as const,
+        data: chartData.map((d) => d.requirement),
+        borderColor: '#ef4444',
+        backgroundColor: '#ef4444',
+        fill: false,
+        tension: 0.3,
+        pointRadius: 2,
+      },
+    ],
+  };
+
+  // 3. Build chartOptions
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { 
+        display: true, 
+        position: 'top' as const,
+        labels: {
+          filter: (legendItem: any) => legendItem.text !== 'Gap Bottom'
+        }
+      },
+      tooltip: { 
+        mode: 'index' as const, 
+        intersect: false,
+        callbacks: {
+          afterBody: (context: any) => {
+            const dataIndex = context[0].dataIndex;
+            const data = chartData[dataIndex];
+            return [
+              `Variance: ${data.variance >= 0 ? '+' : ''}${data.variance.toFixed(1)}`,
+              `Status: ${data.surplus > 0 ? 'Surplus' : 'Shortfall'}`
+            ];
+          }
+        }
+      },
+    },
+    scales: {
+      x: {
+        title: { display: true, text: 'Time' },
+        grid: { display: true, drawOnChartArea: false },
+        ticks: {
+          maxRotation: 45,
+          minRotation: 45,
+          font: {
+            size: 8
+          }
+        }
+      },
+      y: {
+        title: { display: true, text: 'Staff Count' },
+        grid: { display: true },
+        beginAtZero: true
+      },
+    },
+    interaction: { mode: 'index' as const, intersect: false },
+  };
+
   return (
     <Card className="mb-8">
       <CardHeader className="flex flex-row items-center justify-between">
@@ -331,103 +448,7 @@ export function StaffingChart({ volumeMatrix, ahtMatrix = [], rosterGrid, config
             
             {/* Chart Section - Aligned with intervals */}
             <div className="h-96 border-b">
-              <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={chartData} margin={{ top: 20, right: 30, left: 50, bottom: 60 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis 
-                    dataKey="time" 
-                    stroke="hsl(var(--foreground))"
-                    fontSize={8}
-                    angle={-45}
-                    textAnchor="end"
-                    height={60}
-                    interval={0}
-                    tick={{ fontSize: 8 }}
-                    ticks={chartData.map(entry => entry.time)}
-                    label={{ 
-                      value: 'Time', 
-                      position: 'insideBottom', 
-                      offset: -10,
-                      style: { textAnchor: 'middle', fontSize: '12px' }
-                    }}
-                  />
-                  <YAxis 
-                    stroke="hsl(var(--foreground))"
-                    fontSize={10}
-                    label={{ value: 'Staff Count', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fontSize: '12px' } }}
-                  />
-                  <Tooltip 
-                    content={({ active, payload, label }) => {
-                      if (active && payload && payload.length) {
-                        const data = payload[0].payload;
-                        return (
-                          <div className="bg-card border border-border rounded-lg p-3 shadow-lg">
-                            <p className="font-medium">{`Time: ${label}`}</p>
-                            <p className="text-blue-400">{`Actual: ${data.actual}`}</p>
-                            <p className="text-red-400">{`Required: ${data.required}`}</p>
-                            <p className={`${data.variance >= 0 ? 'text-yellow-400' : 'text-red-400'}`}>
-                              {`Variance: ${data.variance >= 0 ? '+' : ''}${data.variance.toFixed(1)}`}
-                            </p>
-                            <p className={`${data.surplus > 0 ? 'text-yellow-400' : 'text-red-400'}`}>
-                              {`Status: ${data.surplus > 0 ? 'Surplus' : 'Shortfall'}`}
-                            </p>
-                          </div>
-                        );
-                      }
-                      return null;
-                    }}
-                  />
-                  <Legend />
-                  
-                  {/* Stacked bars for gap visualization */}
-                  {/* Transparent base bar */}
-                  <Bar 
-                    dataKey="gapBottom" 
-                    name="Base"
-                    stackId="gap"
-                    fill="transparent"
-                    legendType="none"
-                  />
-                  
-                  {/* Surplus bars (yellow) */}
-                  <Bar 
-                    dataKey="surplus" 
-                    name="Surplus"
-                    stackId="gap"
-                    fill="#eab308"
-                  />
-                  
-                  {/* Shortfall bars (red) */}
-                  <Bar 
-                    dataKey="shortfall" 
-                    name="Shortfall"
-                    stackId="gap"
-                    fill="#ef4444"
-                  />
-                  
-                  {/* Actual line - Blue */}
-                  <Line 
-                    type="monotone" 
-                    dataKey="actual" 
-                    stroke="#3b82f6" 
-                    strokeWidth={2}
-                    name="Actual"
-                    dot={{ fill: "#3b82f6", strokeWidth: 1, r: 3 }}
-                    connectNulls={false}
-                  />
-                  
-                  {/* Requirement line - Red */}
-                  <Line 
-                    type="monotone" 
-                    dataKey="required" 
-                    stroke="#ef4444" 
-                    strokeWidth={2}
-                    name="Required"
-                    dot={{ fill: "#ef4444", strokeWidth: 1, r: 3 }}
-                    connectNulls={false}
-                  />
-                </ComposedChart>
-              </ResponsiveContainer>
+              <Chart type="bar" data={chartJsData} options={chartOptions} />
             </div>
             
             {/* Transposed CalculatedMetricsTable - Aligned with intervals */}
