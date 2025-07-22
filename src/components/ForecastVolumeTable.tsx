@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -96,41 +97,40 @@ export function ForecastVolumeTable({
   };
 
   return (
-    <Card className="mb-8">
+    <Card className="mt-4">
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-lg">
             <BarChart3 className="h-5 w-5" />
-            Volume Table
+            Forecast Volume
           </CardTitle>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={loadSampleData}>
-              <Upload className="h-4 w-4 mr-2" />
+            <Button variant="outline" size="sm" onClick={loadSampleData} className="text-xs">
+              <Upload className="h-3 w-3 mr-2" />
               Load Sample
             </Button>
-            <Button variant="outline" size="sm" onClick={clearData}>
-              <RotateCcw className="h-4 w-4 mr-2" />
+            <Button variant="outline" size="sm" onClick={clearData} className="text-xs">
+              <RotateCcw className="h-3 w-3 mr-2" />
               Clear
             </Button>
           </div>
         </div>
-        <div className="text-sm text-muted-foreground">
-          <p> Volume Table: Enter expected call volumes per 30-minute interval (12:30 AM to 12:00 AM)</p>
-          <p className="mt-1">Date Range: {fromDate} to {toDate} | {totalDays} days ({weeks} weeks)</p>
-        </div>
+        <p className="text-xs text-muted-foreground">
+          Enter expected call volumes for each 30-minute interval.
+        </p>
       </CardHeader>
       <CardContent>
-        <div className="overflow-auto max-h-96 border rounded-lg">
+        <div className="overflow-auto max-h-80 border rounded-lg">
           <table className="w-full border-collapse text-sm">
-            <thead className="sticky top-0 bg-[#475569] z-20 text-white">
+            <thead className="sticky top-0 bg-muted z-10">
               <tr>
-                <th className="sticky top-0 left-0 border-r border-border p-2 text-left min-w-28 bg-[#475569] font-medium z-30">
-                  TIME INTERVAL
+                <th className="sticky left-0 border-r border-border p-2 text-left min-w-28 bg-muted font-medium z-20">
+                  TIME
                 </th>
                 {days.map((day, i) => (
-                  <th key={i} className="sticky top-0 border border-border p-2 text-center min-w-16 bg-[#475569]">
+                  <th key={i} className="border border-border p-2 text-center min-w-16 bg-muted">
                     <div className="font-medium">{day.dayName}</div>
-                    <div className="text-xs text-gray-300">{day.date}</div>
+                    <div className="text-xs text-muted-foreground/80">{day.date}</div>
                   </th>
                 ))}
               </tr>
@@ -138,14 +138,14 @@ export function ForecastVolumeTable({
             <tbody>
               {intervals.map((interval, intervalIndex) => (
                 <tr key={intervalIndex} className="hover:bg-muted/50">
-                  <td className="sticky left-0 border-r border-border p-2 font-medium bg-[#2D3A4C] text-white z-10">
+                  <td className="sticky left-0 border-r border-border p-2 font-medium bg-muted/40 z-10">
                     <div className="flex flex-col">
                       <span className="font-medium">{interval.excelFormat}</span>
-                      <span className="text-xs text-gray-300">{interval.display}</span>
+                      <span className="text-xs text-muted-foreground/80">{interval.display}</span>
                     </div>
                   </td>
                   {days.map((_, dayIndex) => (
-                    <td key={dayIndex} className="border border-border p-1 text-center">
+                    <td key={dayIndex} className="border border-border p-0.5 text-center">
                       <input
                         type="number"
                         className="w-full bg-transparent border-none text-center text-sm focus:bg-background focus:outline-none focus:ring-1 focus:ring-primary/20 rounded px-1 py-1"
@@ -160,15 +160,6 @@ export function ForecastVolumeTable({
               ))}
             </tbody>
           </table>
-        </div>
-        <div className="mt-4 p-4 bg-muted/20 rounded-lg text-sm">
-          <h4 className="font-medium mb-2"> Volume Formulas:</h4>
-          <div className="space-y-2">
-            <p><strong>Total Volume </strong> = SUM(Volume per interval across all days)</p>
-            <p><strong>Effective Volume </strong> = ((Total Volume × (1-OutOfOffice%)) × (1-InOffice%)) × (1-BillableBreak%)</p>
-            <p><strong>Time Range</strong> = 48 intervals from 00:30 to 00:00 (30-minute intervals)</p>
-            <p><strong>Usage</strong> = Input for Erlang-C calculations and agent requirements</p>
-          </div>
         </div>
       </CardContent>
     </Card>

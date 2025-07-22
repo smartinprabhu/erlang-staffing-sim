@@ -17,6 +17,26 @@ export function EnhancedRosterGrid({
   const [shiftCounts, setShiftCounts] = useState<number[]>(Array(48).fill(17));
   const [rosterCounts, setRosterCounts] = useState<number[]>(Array(48).fill(0));
   
+  // Sync rosterCounts with external changes to rosterGrid
+  useEffect(() => {
+    const newRosterCounts = Array(48).fill(0);
+    if (rosterGrid && rosterGrid.length === 48) {
+      for (let colIndex = 0; colIndex < 48; colIndex++) {
+        // Find the first non-zero value in the column, as this represents the roster count
+        let rosterValue = 0;
+        for (let rowIndex = 0; rowIndex < 48; rowIndex++) {
+          const cellValue = parseInt(rosterGrid[rowIndex]?.[colIndex], 10) || 0;
+          if (cellValue > 0) {
+            rosterValue = cellValue;
+            break;
+          }
+        }
+        newRosterCounts[colIndex] = rosterValue;
+      }
+    }
+    setRosterCounts(newRosterCounts);
+  }, [rosterGrid]);
+  
   // Initialize sample roster values
   useEffect(() => {
     console.log('Initializing roster grid with default values');

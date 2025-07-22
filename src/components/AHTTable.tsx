@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -88,41 +89,40 @@ export function AHTTable({
   };
 
   return (
-    <Card className="mb-8">
+    <Card className="mt-4">
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-lg">
             <Clock className="h-5 w-5" />
-            AHT (Average Handle Time) Table
+            AHT (Average Handle Time)
           </CardTitle>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={loadSampleData}>
-              <Upload className="h-4 w-4 mr-2" />
+            <Button variant="outline" size="sm" onClick={loadSampleData} className="text-xs">
+              <Upload className="h-3 w-3 mr-2" />
               Load Sample
             </Button>
-            <Button variant="outline" size="sm" onClick={clearData}>
-              <RotateCcw className="h-4 w-4 mr-2" />
+            <Button variant="outline" size="sm" onClick={clearData} className="text-xs">
+              <RotateCcw className="h-3 w-3 mr-2" />
               Clear
             </Button>
           </div>
         </div>
-        <div className="text-sm text-muted-foreground">
-          <p> AHT Table: Enter Average Handle Time values in seconds per interval (12:30 AM to 12:00 AM)</p>
-          <p className="mt-1">Date Range: {fromDate} to {toDate} | {totalDays} days ({weeks} weeks)</p>
-        </div>
+        <p className="text-xs text-muted-foreground">
+          Enter Average Handle Time values in seconds for each interval.
+        </p>
       </CardHeader>
       <CardContent>
-        <div className="overflow-auto max-h-96 border rounded-lg">
+        <div className="overflow-auto max-h-80 border rounded-lg">
           <table className="w-full border-collapse text-sm">
-            <thead className="sticky top-0 bg-card z-10">
+            <thead className="sticky top-0 bg-muted z-10">
               <tr>
-                <th className="border border-border p-2 text-left min-w-28 bg-card font-medium">
-                  TIME INTERVAL
+                <th className="sticky left-0 border-r border-border p-2 text-left min-w-28 bg-muted font-medium z-20">
+                  TIME
                 </th>
                 {days.map((day, i) => (
-                  <th key={i} className="border border-border p-2 text-center min-w-16 bg-card">
+                  <th key={i} className="border border-border p-2 text-center min-w-16 bg-muted">
                     <div className="font-medium">{day.dayName}</div>
-                    <div className="text-xs text-muted-foreground">{day.date}</div>
+                    <div className="text-xs text-muted-foreground/80">{day.date}</div>
                   </th>
                 ))}
               </tr>
@@ -130,16 +130,16 @@ export function AHTTable({
             <tbody>
               {intervals.map((interval, intervalIndex) => (
                 <tr key={intervalIndex} className="hover:bg-muted/50">
-                  <td className="border border-border p-2 font-medium bg-muted/20">
+                  <td className="sticky left-0 border-r border-border p-2 font-medium bg-muted/40 z-10">
                     <div className="flex flex-col">
                       <span className="font-medium">{interval.excelFormat}</span>
-                      <span className="text-xs text-muted-foreground">{interval.display}</span>
+                      <span className="text-xs text-muted-foreground/80">{interval.display}</span>
                     </div>
                   </td>
                   {days.map((_, dayIndex) => {
                     const ahtValue = ahtMatrix[dayIndex]?.[intervalIndex] || 1560;
                     return (
-                      <td key={dayIndex} className="border border-border p-1 text-center">
+                      <td key={dayIndex} className="border border-border p-0.5 text-center">
                         <div className="space-y-1">
                           <input
                             type="number"
@@ -160,16 +160,6 @@ export function AHTTable({
               ))}
             </tbody>
           </table>
-        </div>
-        <div className="mt-4 p-4 bg-muted/20 rounded-lg text-sm">
-          <h4 className="font-medium mb-2"> AHT Formulas:</h4>
-          <div className="space-y-2">
-            <p><strong>AHT Definition</strong> = (Talk Time + Hold Time + After-Call Work) ÷ Number of Calls</p>
-            <p><strong>Traffic Intensity</strong> = (Volume × AHT) ÷ 3600 (Erlangs)</p>
-            <p><strong>Usage in Erlang-C</strong> = AHT used for SLA and Occupancy calculations</p>
-            <p><strong>Time Range</strong> = 48 intervals from 00:30 to 00:00 (30-minute intervals)</p>
-            <p><strong>Units</strong> = Seconds (minimum 1 second, default 1560 seconds = 26 minutes)</p>
-          </div>
         </div>
       </CardContent>
     </Card>

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,28 +6,93 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Settings, Download, RotateCcw } from "lucide-react";
 import { ConfigurationData } from "./ContactCenterApp";
 import { DateRangePicker } from "./DateRangePicker";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { ForecastVolumeTable } from "./ForecastVolumeTable";
 import { AHTTable } from "./AHTTable";
 import { EnhancedRosterGrid } from "./EnhancedRosterGrid";
 import { StaffingChart } from "./StaffingChart";
 
-interface InputConfigurationScreenProps {
+export interface InputConfigurationScreenProps {
   onRunSimulation: (data: ConfigurationData) => void;
 }
+
+// Helper function to generate sample volume data
+const generateSampleVolumeData = (totalDays: number): number[][] => {
+  const matrix: number[][] = [];
+  
+  for (let dayIndex = 0; dayIndex < totalDays; dayIndex++) {
+    const dayVolumes: number[] = [];
+    for (let intervalIndex = 0; intervalIndex < 48; intervalIndex++) {
+      // Sample volume pattern - higher during business hours
+      const hour = Math.floor(((intervalIndex * 30) + 30) / 60) % 24;
+      let baseVolume = 0;
+      
+      if (hour >= 8 && hour <= 18) {
+        baseVolume = 50 + Math.floor(Math.random() * 30); // Business hours: 50-80
+      } else if (hour >= 6 && hour <= 22) {
+        baseVolume = 20 + Math.floor(Math.random() * 20); // Extended hours: 20-40
+      } else {
+        baseVolume = 5 + Math.floor(Math.random() * 10); // Night hours: 5-15
+      }
+      
+      dayVolumes.push(baseVolume);
+    }
+    matrix.push(dayVolumes);
+  }
+  return matrix;
+};
+
+// Helper function to generate sample AHT data
+const generateSampleAHTData = (totalDays: number): number[][] => {
+  const matrix: number[][] = [];
+  
+  for (let dayIndex = 0; dayIndex < totalDays; dayIndex++) {
+    const dayAHTs: number[] = [];
+    for (let intervalIndex = 0; intervalIndex < 48; intervalIndex++) {
+      // Sample AHT pattern - varies slightly throughout the day
+      const baseAHT = 1560; // 26 minutes base
+      const variation = Math.floor(Math.random() * 300) - 150; // ±2.5 minutes
+      dayAHTs.push(Math.max(60, baseAHT + variation)); // Minimum 1 minute
+    }
+    matrix.push(dayAHTs);
+  }
+  return matrix;
+};
+
+// Helper function to resize matrix when weeks change
+const resizeMatrix = (existingMatrix: number[][], newTotalDays: number, generateSampleData: (days: number) => number[][]): number[][] => {
+  const newMatrix: number[][] = [];
+  
+  for (let dayIndex = 0; dayIndex < newTotalDays; dayIndex++) {
+    if (existingMatrix[dayIndex]) {
+      // Keep existing data
+      newMatrix.push([...existingMatrix[dayIndex]]);
+    } else {
+      // Generate new data for additional days
+      const sampleData = generateSampleData(1);
+      newMatrix.push(sampleData[0]);
+    }
+  }
+  return newMatrix;
+};
 
 export function InputConfigurationScreen({ onRunSimulation }: InputConfigurationScreenProps) {
   const [weeks, setWeeks] = useState<4 | 8 | 12>(4);
   const [fromDate, setFromDate] = useState("2025-06-29");
   const [toDate, setToDate] = useState("2025-07-26");
+  const [lob, setLob] = useState("Phone");
   const [plannedAHT, setPlannedAHT] = useState(1560);
   const [slaTarget, setSlaTarget] = useState(80);
   const [serviceTime, setServiceTime] = useState(30);
   const [inOfficeShrinkage, setInOfficeShrinkage] = useState(0);
   const [outOfOfficeShrinkage, setOutOfOfficeShrinkage] = useState(34.88);
   const [billableBreak, setBillableBreak] = useState(5.88);
-  const [volumeMatrix, setVolumeMatrix] = useState<number[][]>([]);
-  const [ahtMatrix, setAHTMatrix] = useState<number[][]>([]);
+  
+  // Initialize with sample data immediately
+  const [volumeMatrix, setVolumeMatrix] = useState<number[][]>(() => generateSampleVolumeData(4 * 7));
+  const [ahtMatrix, setAHTMatrix] = useState<number[][]>(() => generateSampleAHTData(4 * 7));
   const [rosterGrid, setRosterGrid] = useState<string[][]>([]);
 
   const handleRunSimulation = () => {
@@ -45,22 +109,29 @@ export function InputConfigurationScreen({ onRunSimulation }: InputConfiguration
       volumeMatrix,
       rosterGrid
     };
-    
     onRunSimulation(configData);
   };
 
   const handleClear = () => {
+    // Reset to empty matrices
     setVolumeMatrix([]);
     setAHTMatrix([]);
     setRosterGrid([]);
   };
 
   const calculateDateRange = (selectedWeeks: 4 | 8 | 12) => {
-    const from = new Date(fromDate);
-    const to = new Date(from);
-    to.setDate(to.getDate() + (selectedWeeks * 7) - 1);
-    setToDate(to.toISOString().split('T')[0]);
     setWeeks(selectedWeeks);
+    const startDate = new Date("2025-06-29");
+    const endDate = new Date(startDate);
+    endDate.setDate(startDate.getDate() + (selectedWeeks * 7) - 1);
+    
+    setFromDate(startDate.toISOString().split('T')[0]);
+    setToDate(endDate.toISOString().split('T')[0]);
+    
+    // Update matrix sizes when weeks change
+    const totalDays = selectedWeeks * 7;
+    setVolumeMatrix(prev => resizeMatrix(prev, totalDays, generateSampleVolumeData));
+    setAHTMatrix(prev => resizeMatrix(prev, totalDays, generateSampleAHTData));
   };
 
   const handleDateRangeChange = (newFromDate: string, newToDate: string) => {
@@ -100,17 +171,27 @@ export function InputConfigurationScreen({ onRunSimulation }: InputConfiguration
       </div>
 
       {/* Compact Configuration Parameters */}
-      <Card className="mb-8">
-        <CardHeader>
-          <CardTitle className="text-xl">Configuration Parameters</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            LOB: Phone | Reference Range: {fromDate} to {toDate} | {weeks * 7} days ({weeks} weeks)
-          </p>
+      <Card className="mb-4">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-lg">Configuration Parameters</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="col-span-2">
-              <Label>Date Range</Label>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+            <div>
+              <Label htmlFor="lob" className="text-xs">LOB</Label>
+              <Select value={lob} onValueChange={setLob}>
+                <SelectTrigger className="mt-1 h-8 text-xs">
+                  <SelectValue placeholder="Select LOB" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Phone">Phone</SelectItem>
+                  <SelectItem value="Chat">Chat</SelectItem>
+                  <SelectItem value="Email">Email</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="md:col-span-1">
+              <Label className="text-xs">Date Range</Label>
               <div className="mt-1">
                 <DateRangePicker
                   fromDate={fromDate}
@@ -124,6 +205,7 @@ export function InputConfigurationScreen({ onRunSimulation }: InputConfiguration
                 variant={weeks === 4 ? "default" : "outline"}
                 size="sm"
                 onClick={() => calculateDateRange(4)}
+                className="text-xs"
               >
                 4 Weeks
               </Button>
@@ -131,6 +213,7 @@ export function InputConfigurationScreen({ onRunSimulation }: InputConfiguration
                 variant={weeks === 8 ? "default" : "outline"}
                 size="sm"
                 onClick={() => calculateDateRange(8)}
+                className="text-xs"
               >
                 8 Weeks
               </Button>
@@ -138,77 +221,77 @@ export function InputConfigurationScreen({ onRunSimulation }: InputConfiguration
                 variant={weeks === 12 ? "default" : "outline"}
                 size="sm"
                 onClick={() => calculateDateRange(12)}
+                className="text-xs"
               >
                 12 Weeks
               </Button>
             </div>
             <div className="flex items-end">
-              <Button variant="outline" onClick={handleClear} className="gap-2">
-                <RotateCcw className="h-4 w-4" />
+              <Button variant="outline" onClick={handleClear} className="gap-2 text-xs">
+                <RotateCcw className="h-3 w-3" />
                 Clear All
               </Button>
             </div>
-            
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mt-4">
             <div>
-              <Label htmlFor="planned-aht">Planned AHT (seconds)</Label>
+              <Label htmlFor="planned-aht" className="text-xs">Planned AHT (s)</Label>
               <Input
                 id="planned-aht"
                 type="number"
                 value={plannedAHT}
                 onChange={(e) => setPlannedAHT(Number(e.target.value))}
-                className="mt-1"
+                className="mt-1 h-8 text-xs"
               />
             </div>
             <div>
-              <Label htmlFor="sla-target">SLA Target (%)</Label>
+              <Label htmlFor="sla-target" className="text-xs">SLA Target (%)</Label>
               <Input
                 id="sla-target"
                 type="number"
                 value={slaTarget}
                 onChange={(e) => setSlaTarget(Number(e.target.value))}
-                className="mt-1"
+                className="mt-1 h-8 text-xs"
               />
             </div>
             <div>
-              <Label htmlFor="service-time">Service Time (seconds)</Label>
+              <Label htmlFor="service-time" className="text-xs">Service Time (s)</Label>
               <Input
                 id="service-time"
                 type="number"
                 value={serviceTime}
                 onChange={(e) => setServiceTime(Number(e.target.value))}
-                className="mt-1"
+                className="mt-1 h-8 text-xs"
               />
             </div>
-            <div></div>
-            
             <div>
-              <Label htmlFor="in-office-shrinkage">In-Office Shrinkage (%)</Label>
+              <Label htmlFor="in-office-shrinkage" className="text-xs">In-Office Shrinkage (%)</Label>
               <Input
                 id="in-office-shrinkage"
                 type="number"
                 value={inOfficeShrinkage}
                 onChange={(e) => setInOfficeShrinkage(Number(e.target.value))}
-                className="mt-1"
+                className="mt-1 h-8 text-xs"
               />
             </div>
             <div>
-              <Label htmlFor="out-office-shrinkage">Out-of-Office Shrinkage (%)</Label>
+              <Label htmlFor="out-office-shrinkage" className="text-xs">Out-of-Office Shrinkage (%)</Label>
               <Input
                 id="out-office-shrinkage"
                 type="number"
                 value={outOfOfficeShrinkage}
                 onChange={(e) => setOutOfOfficeShrinkage(Number(e.target.value))}
-                className="mt-1"
+                className="mt-1 h-8 text-xs"
               />
             </div>
             <div>
-              <Label htmlFor="billable-break">Billable Break (%)</Label>
+              <Label htmlFor="billable-break" className="text-xs">Billable Break (%)</Label>
               <Input
                 id="billable-break"
                 type="number"
                 value={billableBreak}
                 onChange={(e) => setBillableBreak(Number(e.target.value))}
-                className="mt-1"
+                className="mt-1 h-8 text-xs"
               />
             </div>
           </div>
@@ -237,29 +320,37 @@ export function InputConfigurationScreen({ onRunSimulation }: InputConfiguration
         }}
       />
 
-      {/* Enhanced Roster Grid */}
-      <EnhancedRosterGrid
-        rosterGrid={rosterGrid}
-        onRosterGridChange={setRosterGrid}
-      />
-
-      {/* Forecast Volume Table */}
-      <ForecastVolumeTable
-        volumeMatrix={volumeMatrix}
-        onVolumeMatrixChange={setVolumeMatrix}
-        weeks={weeks}
-        fromDate={fromDate}
-        toDate={toDate}
-      />
-
-      {/* AHT Table */}
-      <AHTTable
-        ahtMatrix={ahtMatrix}
-        onAHTMatrixChange={setAHTMatrix}
-        weeks={weeks}
-        fromDate={fromDate}
-        toDate={toDate}
-      />
+      <Tabs defaultValue="roster">
+        <TabsList>
+          <TabsTrigger value="roster">Roster Schedule Grid</TabsTrigger>
+          <TabsTrigger value="volume">Forecast Volume</TabsTrigger>
+          <TabsTrigger value="aht">AHT</TabsTrigger>
+        </TabsList>
+        <TabsContent value="roster">
+          <EnhancedRosterGrid
+            rosterGrid={rosterGrid}
+            onRosterGridChange={setRosterGrid}
+          />
+        </TabsContent>
+        <TabsContent value="volume">
+          <ForecastVolumeTable
+            volumeMatrix={volumeMatrix}
+            onVolumeMatrixChange={setVolumeMatrix}
+            weeks={weeks}
+            fromDate={fromDate}
+            toDate={toDate}
+          />
+        </TabsContent>
+        <TabsContent value="aht">
+          <AHTTable
+            ahtMatrix={ahtMatrix}
+            onAHTMatrixChange={setAHTMatrix}
+            weeks={weeks}
+            fromDate={fromDate}
+            toDate={toDate}
+          />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
