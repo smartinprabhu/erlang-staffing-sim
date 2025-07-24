@@ -125,9 +125,9 @@ export function TransposedCalculatedMetricsTable({
       const serviceLevel = rosteredAgents > 0 ?
         calculateSLAWithTraffic(trafficIntensityDoubled, configData.serviceTime, rosteredAgents, avgAHT) * 100 : 0;
 
-      // Occupancy: traffic intensity vs available agents
+      // Excel SMORT Utilisation(BA7,BD7*2,BE7) - Occupancy calculation
       const occupancy = rosteredAgents > 0 ?
-        (trafficIntensity / rosteredAgents) * 100 : 0;
+        (trafficIntensityDoubled / rosteredAgents) * 100 : 0;
       const influx = calculateInflux(effectiveVolume, 0.5);
       const agentDistributionRatio = calculateAgentDistributionRatio(rosteredAgents, totalAgents);
 
