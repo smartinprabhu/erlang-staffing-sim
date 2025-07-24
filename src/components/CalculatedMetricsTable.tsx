@@ -128,9 +128,9 @@ export function CalculatedMetricsTable({
       const serviceLevel = rosteredAgents > 0 ? 
         calculateSLA(effectiveVolume, avgAHT, configData.serviceTime, rosteredAgents) * 100 : 0;
       
-      // 6. Occupancy (BG7): Utilisation(BA7,BD7*2,BE7) - Erlang utilization
-      const occupancy = rosteredAgents > 0 ? 
-        erlangUtilization(trafficIntensity, rosteredAgents) * 100 : 0;
+      // 6. Occupancy: traffic intensity vs available agents
+      const occupancy = rosteredAgents > 0 ?
+        (trafficIntensity / rosteredAgents) * 100 : 0;
       
       // 7. Influx = Calls per hour (Volume / 0.5 hours)
       const influx = calculateInflux(effectiveVolume, 0.5);
