@@ -50,15 +50,14 @@ export function CalculatedMetricsTable({
       return total + row.reduce((rowSum, val) => rowSum + (parseInt(val) || 0), 0);
     }, 0) || 1;
     
-    // Process each 30-minute interval (Excel SMORT format: 12:30 AM to 12:00 AM)
+    // Process each 30-minute interval (Excel SMORT format: 00:00 to 23:30)
     for (let intervalIndex = 0; intervalIndex < 48; intervalIndex++) {
-      // Excel starts at 12:30 AM (0:30), so we add 30 minutes to the base calculation
-      const totalMinutes = (intervalIndex * 30) + 30; // Start from 30 minutes (12:30 AM)
-      const hour = Math.floor(totalMinutes / 60) % 24; // Wrap around at 24 hours
+      // Excel SMORT starts at 00:00 (12:00 AM)
+      const totalMinutes = intervalIndex * 30; // Start from 0 minutes (12:00 AM)
+      const hour = Math.floor(totalMinutes / 60) % 24;
       const minute = totalMinutes % 60;
-      
+
       const timeDisplay = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-      const timeDisplayAMPM = `${(hour % 12 || 12).toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')} ${hour < 12 ? 'AM' : 'PM'}`;
       
       // Calculate totals across all days for this interval
       let totalVolume = 0;
