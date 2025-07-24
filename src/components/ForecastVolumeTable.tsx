@@ -81,11 +81,11 @@ export function ForecastVolumeTable({
       Array(48).fill(0).map((_, i) => {
         const hour = Math.floor(i / 2);
         if (hour >= 9 && hour <= 17) {
-          return Math.floor(Math.random() * 6) + 8; // 8-14 calls
-        } else if (hour >= 6 && hour <= 22) {
-          return Math.floor(Math.random() * 4) + 3; // 3-7 calls
+          return Math.random() < 0.8 ? Math.floor(Math.random() * 3) + 2 : 0; // 2-5 calls or 0
+        } else if (hour >= 7 && hour <= 20) {
+          return Math.random() < 0.4 ? Math.floor(Math.random() * 2) + 1 : 0; // 1-3 calls or 0
         }
-        return Math.floor(Math.random() * 2) + 1; // 1-3 calls
+        return Math.random() < 0.1 ? 1 : 0; // mostly 0, rare 1 call
       })
     );
     onVolumeMatrixChange(sampleData);
