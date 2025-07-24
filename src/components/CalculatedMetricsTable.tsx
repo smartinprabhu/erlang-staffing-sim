@@ -348,7 +348,7 @@ export function CalculatedMetricsTable({
                           <div className="font-semibold mb-1">Call Trend Calculation</div>
                           <div className="mb-1">Formula:</div>
                           <code className="block bg-muted p-1 rounded mb-2">
-                            Call Trend = (Effective Volume / Total Volume) * 100 (Shrinkage Impact)
+                            Excel: =IFERROR((SUM(BP7:CQ7)/COUNTIF(BP7:CQ7,&quot;&gt;0&quot;)/$BC$1),0)
                           </code>
                           <div className="text-xs space-y-1 mt-2">
                             <div className="font-medium">Values:</div>
