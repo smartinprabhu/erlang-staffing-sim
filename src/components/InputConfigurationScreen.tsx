@@ -52,8 +52,8 @@ const generateSampleAHTData = (totalDays: number): number[][] => {
     const dayAHTs: number[] = [];
     for (let intervalIndex = 0; intervalIndex < 48; intervalIndex++) {
       // Sample AHT pattern - varies slightly throughout the day
-      const baseAHT = 1560; // 26 minutes base
-      const variation = Math.floor(Math.random() * 300) - 150; // ±2.5 minutes
+      const baseAHT = 480; // 8 minutes base
+      const variation = Math.floor(Math.random() * 120) - 60; // ±1 minute
       dayAHTs.push(Math.max(60, baseAHT + variation)); // Minimum 1 minute
     }
     matrix.push(dayAHTs);
