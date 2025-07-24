@@ -90,7 +90,7 @@ export function InputConfigurationScreen({ onRunSimulation }: InputConfiguration
   const [outOfOfficeShrinkage, setOutOfOfficeShrinkage] = useState(34.88);
   const [billableBreak, setBillableBreak] = useState(5.88);
   
-  // Initialize with sample data immediately
+  // Initialize with adjusted sample data immediately
   const [volumeMatrix, setVolumeMatrix] = useState<number[][]>(() => generateSampleVolumeData(4 * 7));
   const [ahtMatrix, setAHTMatrix] = useState<number[][]>(() => generateSampleAHTData(4 * 7));
   const [rosterGrid, setRosterGrid] = useState<string[][]>([]);
