@@ -87,8 +87,8 @@ export function InputConfigurationScreen({ onRunSimulation }: InputConfiguration
   const [slaTarget, setSlaTarget] = useState(80);
   const [serviceTime, setServiceTime] = useState(30);
   const [inOfficeShrinkage, setInOfficeShrinkage] = useState(0);
-  const [outOfOfficeShrinkage, setOutOfOfficeShrinkage] = useState(15);
-  const [billableBreak, setBillableBreak] = useState(8);
+  const [outOfOfficeShrinkage, setOutOfOfficeShrinkage] = useState(34.88);
+  const [billableBreak, setBillableBreak] = useState(5.88);
   
   // Initialize with adjusted sample data immediately
   const [volumeMatrix, setVolumeMatrix] = useState<number[][]>(() => generateSampleVolumeData(4 * 7));
