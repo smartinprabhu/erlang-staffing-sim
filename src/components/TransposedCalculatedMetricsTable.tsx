@@ -215,15 +215,17 @@ export function TransposedCalculatedMetricsTable({
           <div className="text-sm">
             <div className="font-semibold mb-1">Actual Agents Calculation</div>
             <code className="block bg-muted p-1 rounded mb-2 text-xs">
-              Actual = Raw Agents Ã— (1 - OOO Shrinkage) Ã— (1 - IO Shrinkage) Ã— (1 - Billable Break)
+              Actual = Raw Agents × (1 - OOO) × (1 - IO) × (1 - BB)
             </code>
             <div className="text-xs space-y-1 mt-2">
-              <div>Raw Agents = {raw.rawRosteredAgents.toFixed(2)}</div>
-              <div>OOO Shrinkage = {configData.outOfOfficeShrinkage}%</div>
-              <div>IO Shrinkage = {configData.inOfficeShrinkage}%</div>
-              <div>Billable Break = {configData.billableBreak}%</div>
-              <div className="font-medium mt-2">Calculation:</div>
-              <div>= {raw.rosteredAgents.toFixed(2)}</div>
+              <div className="font-medium">Step-by-step:</div>
+              <div>1. Raw Rostered Agents = {raw.rawRosteredAgents?.toFixed(2) || 'N/A'}</div>
+              <div>2. Shrinkage Factors:</div>
+              <div>   - Out of Office: {raw.outOfOfficeShrinkage || 'N/A'}% = {((100 - (raw.outOfOfficeShrinkage || 0))/100).toFixed(2)} available</div>
+              <div>   - In Office: {raw.inOfficeShrinkage || 'N/A'}% = {((100 - (raw.inOfficeShrinkage || 0))/100).toFixed(2)} available</div>
+              <div>   - Billable Break: {raw.billableBreak || 'N/A'}% = {((100 - (raw.billableBreak || 0))/100).toFixed(2)} available</div>
+              <div className="font-medium mt-2">Final Calculation:</div>
+              <div>Actual = {raw.rawRosteredAgents?.toFixed(2) || 'N/A'} × {((100 - (raw.outOfOfficeShrinkage || 0))/100).toFixed(2)} × {((100 - (raw.inOfficeShrinkage || 0))/100).toFixed(2)} × {((100 - (raw.billableBreak || 0))/100).toFixed(2)} = {value}</div>
             </div>
           </div>
         );
