@@ -97,9 +97,9 @@ export function CalculatedMetricsTable({
         configData.billableBreak
       );
       
-      // 2. Required Agents using Erlang-C calculation
-      // First calculate staff hours from effective volume
-      const staffHours = calculateStaffHours(effectiveVolume, avgAHT);
+      // 2. Required Agents calculation
+      // Basic staffing calculation using raw volume (no double shrinkage)
+      const rawStaffHours = calculateStaffHours(totalVolume, avgAHT);
       const agentWorkHours = calculateAgentWorkHours(
         0.5, // 30-minute interval = 0.5 hours
         configData.outOfOfficeShrinkage,
@@ -107,16 +107,16 @@ export function CalculatedMetricsTable({
         configData.billableBreak
       );
 
-      // Basic requirement calculation: staff hours / agent work hours
-      const basicRequiredAgents = agentWorkHours > 0 ? staffHours / agentWorkHours : 0;
+      // Basic requirement: Raw staff hours / adjusted agent work hours
+      const basicRequiredAgents = agentWorkHours > 0 ? rawStaffHours / agentWorkHours : 0;
 
-      // Apply Erlang-C for service level optimization
+      // Erlang-C calculation uses effective volume for traffic intensity
       const trafficIntensity = (effectiveVolume * avgAHT) / 3600;
       const erlangRequiredAgents = effectiveVolume > 0 ?
         erlangAgents(configData.slaTarget / 100, configData.serviceTime, trafficIntensity, avgAHT) : 0;
 
-      // Use the higher of basic calculation and Erlang-C for SLA compliance
-      const requiredAgents = Math.max(basicRequiredAgents, erlangRequiredAgents);
+      // Use basic calculation as primary
+      const requiredAgents = basicRequiredAgents;
       
       // 3. Variance (BC7): POWER((BA7-BB7),2) - Actually it's just the difference
       const variance = calculateVariance(rosteredAgents, requiredAgents);
