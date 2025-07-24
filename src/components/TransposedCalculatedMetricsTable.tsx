@@ -100,8 +100,8 @@ export function TransposedCalculatedMetricsTable({
         configData.billableBreak
       );
 
-      // Basic requirement: Raw staff hours / adjusted agent work hours
-      const basicRequiredAgents = agentWorkHours > 0 ? rawStaffHours / agentWorkHours : 0;
+      // Basic requirement: Raw staff hours / adjusted agent work hours (only if we have actual volume)
+      const basicRequiredAgents = (totalVolume > 0 && agentWorkHours > 0) ? rawStaffHours / agentWorkHours : 0;
 
       // Excel SMORT BD7*2 pattern: Traffic intensity calculation
       // BD7 = traffic for 30-min interval, BD7*2 = doubled for Erlang functions
