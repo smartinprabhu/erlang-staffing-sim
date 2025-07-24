@@ -280,17 +280,20 @@ export function CalculatedMetricsTable({
                           <div className="font-semibold mb-1">Requirement Calculation</div>
                           <div className="mb-1">Formula:</div>
                           <code className="block bg-muted p-1 rounded mb-2">
-                            Required = Max(Basic Staff Hours / Agent Work Hours, Erlang-C)
+                            Required = (Total Volume × AHT ÷ 3600) ÷ (0.5 × (1-OOO) × (1-IO) × (1-BB))
                           </code>
                           <div className="text-xs space-y-1 mt-2">
-                            <div className="font-medium">Values:</div>
-                            <div>Staff Hours = {metric.raw.staffHours?.toFixed(2) || 'N/A'}</div>
-                            <div>Agent Work Hours = {metric.raw.agentWorkHours?.toFixed(2) || 'N/A'}</div>
-                            <div>Basic Requirement = {metric.raw.basicRequiredAgents?.toFixed(2) || 'N/A'}</div>
-                            <div>Erlang-C Requirement = {metric.raw.erlangRequiredAgents?.toFixed(2) || 'N/A'}</div>
-                            <div className="font-medium mt-2">Calculation:</div>
-                            <div>= Max({metric.raw.basicRequiredAgents?.toFixed(2) || 'N/A'}, {metric.raw.erlangRequiredAgents?.toFixed(2) || 'N/A'})</div>
-                            <div>= {metric.requirement}</div>
+                            <div className="font-medium">Step-by-step:</div>
+                            <div>1. Total Volume = {metric.raw.totalVolume?.toFixed(2) || 'N/A'} calls</div>
+                            <div>2. AHT = {metric.raw.avgAHT?.toFixed(2) || 'N/A'} seconds</div>
+                            <div>3. Raw Staff Hours = {metric.raw.totalVolume?.toFixed(2) || 'N/A'} × {metric.raw.avgAHT?.toFixed(2) || 'N/A'} ÷ 3600 = {metric.raw.rawStaffHours?.toFixed(2) || 'N/A'}</div>
+                            <div>4. Shrinkage Factors:</div>
+                            <div>   - Out of Office: {metric.raw.outOfOfficeShrinkage || 'N/A'}% = {((100 - (metric.raw.outOfOfficeShrinkage || 0))/100).toFixed(2)}</div>
+                            <div>   - In Office: {metric.raw.inOfficeShrinkage || 'N/A'}% = {((100 - (metric.raw.inOfficeShrinkage || 0))/100).toFixed(2)}</div>
+                            <div>   - Billable Break: {metric.raw.billableBreak || 'N/A'}% = {((100 - (metric.raw.billableBreak || 0))/100).toFixed(2)}</div>
+                            <div>5. Agent Work Hours = 0.5 × {((100 - (metric.raw.outOfOfficeShrinkage || 0))/100).toFixed(2)} × {((100 - (metric.raw.inOfficeShrinkage || 0))/100).toFixed(2)} × {((100 - (metric.raw.billableBreak || 0))/100).toFixed(2)} = {metric.raw.agentWorkHours?.toFixed(2) || 'N/A'}</div>
+                            <div className="font-medium mt-2">Final Calculation:</div>
+                            <div>Required = {metric.raw.rawStaffHours?.toFixed(2) || 'N/A'} ÷ {metric.raw.agentWorkHours?.toFixed(2) || 'N/A'} = {metric.requirement}</div>
                           </div>
                         </div>
                       </TooltipContent>
