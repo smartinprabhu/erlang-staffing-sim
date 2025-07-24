@@ -121,8 +121,8 @@ export function CalculatedMetricsTable({
       // 3. Variance (BC7): POWER((BA7-BB7),2) - Actually it's just the difference
       const variance = calculateVariance(rosteredAgents, requiredAgents);
       
-      // 4. Call Trend (Could be actual vs forecast comparison)
-      const callTrend = calculateCallTrend(effectiveVolume, totalVolume);
+      // 4. Call Trend (Effective vs Total Volume - shows shrinkage impact)
+      const callTrend = calculateCallTrendShrinkage(effectiveVolume, totalVolume);
       
       // 5. Service Level (BF7): SLA(BA7,$B$1,BD7*2,BE7) - Erlang-C SLA calculation
       const serviceLevel = rosteredAgents > 0 ? 
