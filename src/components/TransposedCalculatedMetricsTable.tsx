@@ -219,13 +219,13 @@ export function TransposedCalculatedMetricsTable({
           <div className="text-sm">
             <div className="font-semibold mb-1">Requirement Calculation</div>
             <code className="block bg-muted p-1 rounded mb-2 text-xs">
-              Required = erlangAgents(SLA, Service Time, Traffic, AHT)
+              Required = Max(Basic Staff Hours / Agent Work Hours, Erlang-C)
             </code>
             <div className="text-xs space-y-1 mt-2">
-              <div>SLA Target = {configData.slaTarget}%</div>
-              <div>Service Time = {configData.serviceTime}s</div>
-              <div>Traffic Intensity = {raw.trafficIntensity.toFixed(2)} Erlangs</div>
-              <div>AHT = {raw.avgAHT.toFixed(2)}s</div>
+              <div>Staff Hours = {raw.staffHours?.toFixed(2) || 'N/A'}</div>
+              <div>Agent Work Hours = {raw.agentWorkHours?.toFixed(2) || 'N/A'}</div>
+              <div>Basic Requirement = {raw.basicRequiredAgents?.toFixed(2) || 'N/A'}</div>
+              <div>Erlang-C Requirement = {raw.erlangRequiredAgents?.toFixed(2) || 'N/A'}</div>
               <div className="font-medium mt-2">Calculation:</div>
               <div>= {value}</div>
             </div>
