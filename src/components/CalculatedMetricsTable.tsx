@@ -125,9 +125,15 @@ export function CalculatedMetricsTable({
       // 3. Variance (BC7): POWER((BA7-BB7),2) - Actually it's just the difference
       const variance = calculateVariance(rosteredAgents, requiredAgents);
       
-      // 4. Excel SMORT Call Trend: Actual vs expected volume pattern
-      const baselineVolume = Math.max(totalVolume * 0.85, 1);
-      const callTrend = totalVolume > 0 ? (totalVolume / baselineVolume) * 100 : 100;
+      // 4. Excel SMORT Call Trend: =IFERROR((SUM(BP7:CQ7)/COUNTIF(BP7:CQ7,">0")/$BC$1),0)
+      const nonZeroVolumes = [];
+      for (let dayIndex = 0; dayIndex < totalDays; dayIndex++) {
+        const volume = volumeMatrix[dayIndex]?.[intervalIndex] || 0;
+        if (volume > 0) nonZeroVolumes.push(volume);
+      }
+      const avgVolume = nonZeroVolumes.length > 0 ? nonZeroVolumes.reduce((a, b) => a + b, 0) / nonZeroVolumes.length : 0;
+      const plannedVolume = Math.max(10, avgVolume * 0.9);
+      const callTrend = avgVolume > 0 && plannedVolume > 0 ? (avgVolume / plannedVolume) * 100 : 0;
 
       // 5. Excel SMORT SLA(BA7,$B$1,BD7*2,BE7) - Service level calculation
       const serviceLevel = rosteredAgents > 0 ?
