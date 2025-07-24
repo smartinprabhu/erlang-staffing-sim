@@ -237,7 +237,7 @@ export function TransposedCalculatedMetricsTable({
           <div className="text-sm">
             <div className="font-semibold mb-1">Actual Agents Calculation</div>
             <code className="block bg-muted p-1 rounded mb-2 text-xs">
-              Actual = Raw Agents �� (1 - OOO) × (1 - IO) × (1 - BB)
+              Actual = Raw Agents × (1 - OOO) × (1 - IO) × (1 - BB)
             </code>
             <div className="text-xs space-y-1 mt-2">
               <div className="font-medium">Step-by-step:</div>
@@ -291,21 +291,18 @@ export function TransposedCalculatedMetricsTable({
       case 'callTrend':
         return (
           <div className="text-sm">
-            <div className="font-semibold mb-1">Call Trend Calculation (Shrinkage Impact)</div>
+            <div className="font-semibold mb-1">Call Trend Calculation</div>
             <code className="block bg-muted p-1 rounded mb-2 text-xs">
-              Trend = (Effective Volume ÷ Total Volume) × 100
+              Excel: =IFERROR((SUM(BP7:CQ7)/COUNTIF(BP7:CQ7,&quot;&gt;0&quot;)/$BC$1),0)
             </code>
             <div className="text-xs space-y-1 mt-2">
               <div className="font-medium">Step-by-step:</div>
-              <div>1. Total Volume = {raw.totalVolume?.toFixed(2) || 'N/A'} calls</div>
-              <div>2. Shrinkage Factors Applied:</div>
-              <div>   - Out of Office: {raw.outOfOfficeShrinkage || 'N/A'}%</div>
-              <div>   - In Office: {raw.inOfficeShrinkage || 'N/A'}%</div>
-              <div>   - Billable Break: {raw.billableBreak || 'N/A'}%</div>
-              <div>3. Effective Volume = {raw.totalVolume?.toFixed(2) || 'N/A'} × {((100 - (raw.outOfOfficeShrinkage || 0))/100).toFixed(2)} × {((100 - (raw.inOfficeShrinkage || 0))/100).toFixed(2)} × {((100 - (raw.billableBreak || 0))/100).toFixed(2)} = {raw.effectiveVolume?.toFixed(2) || 'N/A'}</div>
+              <div>1. Non-zero volumes: [{raw.nonZeroVolumes?.map(v => v.toFixed(1)).join(', ') || 'N/A'}]</div>
+              <div>2. Average volume = {raw.avgVolume?.toFixed(2) || 'N/A'} calls</div>
+              <div>3. Planned volume (BC1) = {raw.plannedVolume?.toFixed(2) || 'N/A'} calls</div>
               <div className="font-medium mt-2">Final Calculation:</div>
-              <div>Call Trend = ({raw.effectiveVolume?.toFixed(2) || 'N/A'} ÷ {raw.totalVolume?.toFixed(2) || 'N/A'}) × 100 = {value}%</div>
-              <div className="text-xs mt-1 italic">Shows how much effective capacity remains after shrinkage</div>
+              <div>Call Trend = ({raw.avgVolume?.toFixed(2) || 'N/A'} ÷ {raw.plannedVolume?.toFixed(2) || 'N/A'}) × 100 = {value}%</div>
+              <div className="text-xs mt-1 italic">Shows actual vs planned volume performance</div>
             </div>
           </div>
         );
