@@ -110,10 +110,13 @@ export function CalculatedMetricsTable({
       // Basic requirement: Raw staff hours / adjusted agent work hours
       const basicRequiredAgents = agentWorkHours > 0 ? rawStaffHours / agentWorkHours : 0;
 
-      // Erlang-C calculation uses effective volume for traffic intensity
-      const trafficIntensity = (effectiveVolume * avgAHT) / 3600;
+      // Excel SMORT BD7*2 pattern: Traffic intensity calculation
+      const trafficIntensityBase = (effectiveVolume * avgAHT) / 3600; // BD7 in Erlangs
+      const trafficIntensity = trafficIntensityBase;
+      const trafficIntensityDoubled = trafficIntensityBase * 2; // BD7*2 for Excel functions
+
       const erlangRequiredAgents = effectiveVolume > 0 ?
-        erlangAgents(configData.slaTarget / 100, configData.serviceTime, trafficIntensity, avgAHT) : 0;
+        erlangAgents(configData.slaTarget / 100, configData.serviceTime, trafficIntensityDoubled, avgAHT) : 0;
 
       // Use basic calculation as primary
       const requiredAgents = basicRequiredAgents;
