@@ -141,10 +141,10 @@ export function CalculatedMetricsTable({
       if (totalVolume > 0 || rosteredAgents > 0) {
         metrics.push({
           time: timeDisplay, // Use Excel 24-hour format
-          actual: rosteredAgents,
+          actual: Math.round(rosteredAgents * 10) / 10,
           requirement: Math.round(requiredAgents * 10) / 10,
           variance: Math.round(variance * 10) / 10,
-          callTrend,
+          callTrend: Math.round(callTrend * 10) / 10,
           aht: Math.round(avgAHT / 60 * 10) / 10, // Convert to minutes with 1 decimal
           serviceLevel: Math.round(serviceLevel * 10) / 10,
           occupancy: Math.round(occupancy * 10) / 10,
