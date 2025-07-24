@@ -136,7 +136,8 @@ export function TransposedCalculatedMetricsTable({
       // Excel SMORT Utilisation(BA7,BD7*2,BE7) - Occupancy calculation
       const occupancy = rosteredAgents > 0 ?
         (trafficIntensityDoubled / rosteredAgents) * 100 : 0;
-      const influx = calculateInflux(effectiveVolume, 0.5);
+      // Excel SMORT Influx: =IFERROR((BA7/BB7),0) = Effective Volume / Required Agents
+      const influx = requiredAgents > 0 ? effectiveVolume / requiredAgents : 0;
       const agentDistributionRatio = calculateAgentDistributionRatio(rosteredAgents, totalAgents);
 
       if (totalVolume > 0 || rosteredAgents > 0) {
