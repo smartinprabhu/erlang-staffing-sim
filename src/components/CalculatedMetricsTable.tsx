@@ -166,8 +166,11 @@ export function CalculatedMetricsTable({
             influx,
             agentDistributionRatio,
             variance,
-            staffHours,
-            agentWorkHours
+            rawStaffHours,
+            agentWorkHours,
+            outOfOfficeShrinkage: configData.outOfOfficeShrinkage,
+            inOfficeShrinkage: configData.inOfficeShrinkage,
+            billableBreak: configData.billableBreak
           }
         });
       }
