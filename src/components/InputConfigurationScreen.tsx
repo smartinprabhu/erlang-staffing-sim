@@ -120,7 +120,7 @@ export function InputConfigurationScreen({ onRunSimulation }: InputConfiguration
   };
 
   const regenerateVolumeData = () => {
-    // Regenerate volume data with new adjusted values
+    // Regenerate volume and AHT data with new adjusted values
     const totalDays = weeks * 7;
     setVolumeMatrix(generateSampleVolumeData(totalDays));
     setAHTMatrix(generateSampleAHTData(totalDays));
