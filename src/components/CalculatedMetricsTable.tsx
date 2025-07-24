@@ -110,7 +110,8 @@ export function CalculatedMetricsTable({
       )); // Ensure minimum 0.1 hours to prevent division by very small numbers
 
       // Basic requirement: Raw staff hours / adjusted agent work hours (only if we have actual volume)
-      const basicRequiredAgents = (totalVolume > 0 && agentWorkHours > 0) ? rawStaffHours / agentWorkHours : 0;
+      const basicRequiredAgents = (totalVolume > 0 && agentWorkHours > 0) ?
+        Math.min(50, rawStaffHours / agentWorkHours) : 0; // Cap at 50 to prevent extreme values
 
       // Excel SMORT BD7*2 pattern: Traffic intensity calculation
       const trafficIntensityBase = (effectiveVolume * avgAHT) / 3600; // BD7 in Erlangs
