@@ -101,7 +101,8 @@ export function TransposedCalculatedMetricsTable({
       )); // Ensure minimum 0.1 hours to prevent division by very small numbers
 
       // Basic requirement: Raw staff hours / adjusted agent work hours (only if we have actual volume)
-      const basicRequiredAgents = (totalVolume > 0 && agentWorkHours > 0) ? rawStaffHours / agentWorkHours : 0;
+      const basicRequiredAgents = (totalVolume > 0 && agentWorkHours > 0) ?
+        Math.min(50, rawStaffHours / agentWorkHours) : 0; // Cap at 50 to prevent extreme values
 
       // Excel SMORT BD7*2 pattern: Traffic intensity calculation
       // BD7 = traffic for 30-min interval, BD7*2 = doubled for Erlang functions
