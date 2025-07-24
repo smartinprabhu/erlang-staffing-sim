@@ -437,13 +437,14 @@ export function CalculatedMetricsTable({
                           <div className="font-semibold mb-1">Influx Calculation</div>
                           <div className="mb-1">Formula:</div>
                           <code className="block bg-muted p-1 rounded mb-2">
-                            Influx = Effective Volume / 0.5
+                            Excel: =IFERROR((BA7/BB7),0) = Effective Volume / Required Agents
                           </code>
                           <div className="text-xs space-y-1 mt-2">
                             <div className="font-medium">Values:</div>
-                            <div>Effective Volume = {metric.raw.effectiveVolume.toFixed(2)}</div>
+                            <div>BA7 (Effective Volume) = {metric.raw.effectiveVolume.toFixed(2)}</div>
+                            <div>BB7 (Required Agents) = {metric.raw.requiredAgents?.toFixed(2) || 'N/A'}</div>
                             <div className="font-medium mt-2">Calculation:</div>
-                            <div>= {metric.raw.effectiveVolume.toFixed(2)} / 0.5</div>
+                            <div>= {metric.raw.effectiveVolume.toFixed(2)} / {metric.raw.requiredAgents?.toFixed(2) || 'N/A'}</div>
                             <div>= {metric.influx}</div>
                           </div>
                         </div>
