@@ -83,7 +83,7 @@ export function InputConfigurationScreen({ onRunSimulation }: InputConfiguration
   const [fromDate, setFromDate] = useState("2025-06-29");
   const [toDate, setToDate] = useState("2025-07-26");
   const [lob, setLob] = useState("Phone");
-  const [plannedAHT, setPlannedAHT] = useState(480); // 8 minutes instead of 26
+  const [plannedAHT, setPlannedAHT] = useState(1560); // 26 minutes
   const [slaTarget, setSlaTarget] = useState(80);
   const [serviceTime, setServiceTime] = useState(30);
   const [inOfficeShrinkage, setInOfficeShrinkage] = useState(0);
