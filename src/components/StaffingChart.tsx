@@ -210,12 +210,13 @@ export function StaffingChart({ volumeMatrix, ahtMatrix = [], rosterGrid, config
 
     // Fixed required agents calculation (same as TransposedCalculatedMetricsTable)
     // Basic staffing calculation using raw volume (no double shrinkage)
-    const rawStaffHours = (totalVolume * avgAHT) / 3600; // calculateStaffHours equivalent
-    const agentWorkHours = Math.max(0.1, 0.5 * // 30-minute interval
-      (1 - configData.outOfOfficeShrinkage / 100) *
-      (1 - configData.inOfficeShrinkage / 100) *
-      (1 - configData.billableBreak / 100)
-    ); // Ensure minimum 0.1 hours to prevent division by very small numbers
+    const rawStaffHours = calculateStaffHours(totalVolume, avgAHT);
+    const agentWorkHours = Math.max(0.1, calculateAgentWorkHours(
+      0.5, // 30-minute interval
+      configData.outOfOfficeShrinkage,
+      configData.inOfficeShrinkage,
+      configData.billableBreak
+    )); // Ensure minimum 0.1 hours to prevent division by very small numbers
 
     // Basic requirement: Raw staff hours / adjusted agent work hours (only if we have actual volume)
     const basicRequiredAgents = (totalVolume > 0 && agentWorkHours > 0) ?
