@@ -144,8 +144,8 @@ export function CalculatedMetricsTable({
       const occupancy = rosteredAgents > 0 ?
         (trafficIntensityDoubled / rosteredAgents) * 100 : 0;
       
-      // 7. Influx = Calls per hour (Volume / 0.5 hours)
-      const influx = calculateInflux(effectiveVolume, 0.5);
+      // 7. Excel SMORT Influx: =IFERROR((BA7/BB7),0) = Effective Volume / Required Agents
+      const influx = requiredAgents > 0 ? effectiveVolume / requiredAgents : 0;
       
       // 8. Agent Distribution Ratio = (Agents in this interval / Total agents) * 100
       const agentDistributionRatio = calculateAgentDistributionRatio(rosteredAgents, totalAgents);
