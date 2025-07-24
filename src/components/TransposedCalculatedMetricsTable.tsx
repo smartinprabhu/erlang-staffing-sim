@@ -116,9 +116,10 @@ export function TransposedCalculatedMetricsTable({
       // Call trend: shows shrinkage impact
       const callTrend = calculateCallTrendShrinkage(effectiveVolume, totalVolume);
 
-      // Service level based on effective volume and rostered agents
+      // Excel SMORT SLA(BA7,$B$1,BD7*2,BE7) - Service level calculation
+      // Use traffic intensity approach instead of volume
       const serviceLevel = rosteredAgents > 0 ?
-        calculateSLA(effectiveVolume, avgAHT, configData.serviceTime, rosteredAgents) * 100 : 0;
+        calculateSLAWithTraffic(trafficIntensityDoubled, configData.serviceTime, rosteredAgents, avgAHT) * 100 : 0;
 
       // Occupancy: traffic intensity vs available agents
       const occupancy = rosteredAgents > 0 ?
