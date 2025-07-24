@@ -105,8 +105,9 @@ export function TransposedCalculatedMetricsTable({
       const trafficIntensityBase = (effectiveVolume * avgAHT) / 3600; // BD7 in Erlangs
       const trafficIntensity = trafficIntensityBase; // For our calculations
       const trafficIntensityDoubled = trafficIntensityBase * 2; // BD7*2 for Excel functions
+      // Excel SMORT Agents($A$1,$B$1,BD7*2,BE7) - uses doubled traffic intensity
       const erlangRequiredAgents = effectiveVolume > 0 ?
-        erlangAgents(configData.slaTarget / 100, configData.serviceTime, trafficIntensity, avgAHT) : 0;
+        erlangAgents(configData.slaTarget / 100, configData.serviceTime, trafficIntensityDoubled, avgAHT) : 0;
 
       // Use basic calculation as primary, Erlang-C as validation for SLA
       const requiredAgents = basicRequiredAgents;
