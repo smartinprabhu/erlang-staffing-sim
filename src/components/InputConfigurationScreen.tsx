@@ -233,10 +233,14 @@ export function InputConfigurationScreen({ onRunSimulation }: InputConfiguration
                 12 Weeks
               </Button>
             </div>
-            <div className="flex items-end">
+            <div className="flex items-end gap-2">
               <Button variant="outline" onClick={handleClear} className="gap-2 text-xs">
                 <RotateCcw className="h-3 w-3" />
                 Clear All
+              </Button>
+              <Button variant="outline" onClick={regenerateVolumeData} className="gap-2 text-xs">
+                <Settings className="h-3 w-3" />
+                Adjust Volumes
               </Button>
             </div>
           </div>
