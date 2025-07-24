@@ -238,7 +238,7 @@ export function CalculatedMetricsTable({
                   <td className="border border-border p-2 text-center">
                     <Tooltip>
                       <TooltipTrigger>
-                        {Math.round(metric.actual)}
+                        {metric.actual}
                       </TooltipTrigger>
                       <TooltipContent className="max-w-[350px]">
                         <div className="text-sm">
