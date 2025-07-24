@@ -315,13 +315,16 @@ export function TransposedCalculatedMetricsTable({
           <div className="text-sm">
             <div className="font-semibold mb-1">Occupancy Calculation</div>
             <code className="block bg-muted p-1 rounded mb-2 text-xs">
-              Occupancy = erlangUtilization(Traffic, Agents)
+              Occupancy = (Traffic Intensity ÷ Actual Agents) × 100
             </code>
             <div className="text-xs space-y-1 mt-2">
-              <div>Traffic Intensity = {raw.trafficIntensity.toFixed(2)} Erlangs</div>
-              <div>Actual Agents = {raw.rosteredAgents.toFixed(2)}</div>
-              <div className="font-medium mt-2">Calculation:</div>
-              <div>= {value}%</div>
+              <div className="font-medium">Step-by-step:</div>
+              <div>1. Effective Volume = {raw.effectiveVolume?.toFixed(2) || 'N/A'} calls</div>
+              <div>2. AHT = {raw.avgAHT?.toFixed(2) || 'N/A'} seconds</div>
+              <div>3. Traffic Intensity = {raw.effectiveVolume?.toFixed(2) || 'N/A'} × {raw.avgAHT?.toFixed(2) || 'N/A'} ÷ 3600 = {raw.trafficIntensity?.toFixed(2) || 'N/A'} Erlangs</div>
+              <div>4. Actual Agents = {raw.rosteredAgents?.toFixed(2) || 'N/A'}</div>
+              <div className="font-medium mt-2">Final Calculation:</div>
+              <div>Occupancy = ({raw.trafficIntensity?.toFixed(2) || 'N/A'} ÷ {raw.rosteredAgents?.toFixed(2) || 'N/A'}) × 100 = {value}%</div>
             </div>
           </div>
         );
