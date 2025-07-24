@@ -11,7 +11,10 @@ import {
   calculateAgentDistributionRatio,
   erlangAgents,
   erlangUtilization,
-  calculateCallTrend
+  calculateCallTrend,
+  calculateCallTrendShrinkage,
+  calculateStaffHours,
+  calculateAgentWorkHours
 } from "@/lib/erlang";
 
 interface TransposedCalculatedMetricsTableProps {
@@ -46,7 +49,7 @@ export function TransposedCalculatedMetricsTable({
     }, 0) || 1;
 
     for (let intervalIndex = 0; intervalIndex < 48; intervalIndex++) {
-      const totalMinutes = (intervalIndex * 30);
+      const totalMinutes = intervalIndex * 30; // Start from 00:00
       const hour = Math.floor(totalMinutes / 60) % 24;
       const minute = totalMinutes % 60;
 
@@ -84,12 +87,24 @@ export function TransposedCalculatedMetricsTable({
         configData.billableBreak
       );
 
+      // Improved required agents calculation
+      const staffHours = calculateStaffHours(effectiveVolume, avgAHT);
+      const agentWorkHours = calculateAgentWorkHours(
+        0.5,
+        configData.outOfOfficeShrinkage,
+        configData.inOfficeShrinkage,
+        configData.billableBreak
+      );
+
+      const basicRequiredAgents = agentWorkHours > 0 ? staffHours / agentWorkHours : 0;
       const trafficIntensity = (effectiveVolume * avgAHT) / 3600;
-      const requiredAgents = effectiveVolume > 0 ?
+      const erlangRequiredAgents = effectiveVolume > 0 ?
         erlangAgents(configData.slaTarget / 100, configData.serviceTime, trafficIntensity, avgAHT) : 0;
 
+      const requiredAgents = Math.max(basicRequiredAgents, erlangRequiredAgents);
+
       const variance = calculateVariance(rosteredAgents, requiredAgents);
-      const callTrend = calculateCallTrend(effectiveVolume, totalVolume);
+      const callTrend = calculateCallTrendShrinkage(effectiveVolume, totalVolume);
       const serviceLevel = rosteredAgents > 0 ?
         calculateSLA(effectiveVolume, avgAHT, configData.serviceTime, rosteredAgents) * 100 : 0;
       const occupancy = rosteredAgents > 0 ?
@@ -100,21 +115,23 @@ export function TransposedCalculatedMetricsTable({
       if (totalVolume > 0 || rosteredAgents > 0) {
         metrics.push({
           time: timeDisplay,
-          actual: Math.round(rosteredAgents),
-          requirement: Math.round(requiredAgents),
-          variance: Math.round(variance),
-          callTrend: Math.round(callTrend),
-          aht: Math.round(avgAHT / 60),
-          serviceLevel: Math.round(serviceLevel),
-          occupancy: Math.round(occupancy),
+          actual: Math.round(rosteredAgents * 10) / 10,
+          requirement: Math.round(requiredAgents * 10) / 10,
+          variance: Math.round(variance * 10) / 10,
+          callTrend: Math.round(callTrend * 10) / 10,
+          aht: Math.round(avgAHT / 60 * 10) / 10,
+          serviceLevel: Math.round(serviceLevel * 10) / 10,
+          occupancy: Math.round(occupancy * 10) / 10,
           influx: Math.round(influx),
-          agentDistributionRatio: Math.round(agentDistributionRatio),
+          agentDistributionRatio: Math.round(agentDistributionRatio * 10) / 10,
           raw: {
             totalVolume,
             effectiveVolume,
             avgAHT,
             trafficIntensity,
             requiredAgents,
+            basicRequiredAgents,
+            erlangRequiredAgents,
             rosteredAgents,
             rawRosteredAgents,
             totalAgents,
@@ -122,7 +139,9 @@ export function TransposedCalculatedMetricsTable({
             occupancy,
             influx,
             agentDistributionRatio,
-            variance
+            variance,
+            staffHours,
+            agentWorkHours
           }
         });
       }
