@@ -352,10 +352,10 @@ export function CalculatedMetricsTable({
                           </code>
                           <div className="text-xs space-y-1 mt-2">
                             <div className="font-medium">Values:</div>
-                            <div>Effective Volume = {metric.raw.effectiveVolume.toFixed(2)}</div>
-                            <div>Total Volume = {metric.raw.totalVolume.toFixed(2)}</div>
+                            <div>Average Volume = {metric.raw.avgVolume?.toFixed(2) || 'N/A'}</div>
+                            <div>Planned Volume (BC1) = {metric.raw.plannedVolume?.toFixed(2) || 'N/A'}</div>
                             <div className="font-medium mt-2">Calculation:</div>
-                            <div>= ({metric.raw.effectiveVolume.toFixed(2)} / {metric.raw.totalVolume.toFixed(2)}) * 100</div>
+                            <div>= ({metric.raw.avgVolume?.toFixed(2) || 'N/A'} / {metric.raw.plannedVolume?.toFixed(2) || 'N/A'}) * 100</div>
                             <div>= {metric.callTrend.toFixed(1)}%</div>
                           </div>
                         </div>
