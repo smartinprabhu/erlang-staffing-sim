@@ -156,6 +156,8 @@ export function CalculatedMetricsTable({
             avgAHT,
             trafficIntensity,
             requiredAgents,
+            basicRequiredAgents,
+            erlangRequiredAgents,
             rosteredAgents,
             rawRosteredAgents,
             totalAgents,
@@ -163,7 +165,9 @@ export function CalculatedMetricsTable({
             occupancy,
             influx,
             agentDistributionRatio,
-            variance
+            variance,
+            staffHours,
+            agentWorkHours
           }
         });
       }
