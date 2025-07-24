@@ -257,10 +257,10 @@ export function StaffingChart({ volumeMatrix, ahtMatrix = [], rosterGrid, config
     
     return {
       time: timeLabel,
-      actual: metrics.actual,
-      required: metrics.requirement,
-      gapBase: minValue, // Starting point of the gap bar
-      gapHeight: maxValue - minValue, // Height of the gap bar
+      actual: Math.round(metrics.actual),
+      required: Math.round(metrics.requirement),
+      gapBase: Math.round(minValue), // Starting point of the gap bar
+      gapHeight: Math.round(maxValue - minValue), // Height of the gap bar
       fill: isOverstaffed ? "#eab308" : "#ef4444" // yellow for overstaffed, red for understaffed
     };
   });
