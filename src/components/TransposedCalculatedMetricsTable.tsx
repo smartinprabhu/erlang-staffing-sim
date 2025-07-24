@@ -360,12 +360,14 @@ export function TransposedCalculatedMetricsTable({
           <div className="text-sm">
             <div className="font-semibold mb-1">Influx Calculation</div>
             <code className="block bg-muted p-1 rounded mb-2 text-xs">
-              Influx = Effective Volume / 0.5
+              Excel: =IFERROR((BA7/BB7),0) = Effective Volume / Required Agents
             </code>
             <div className="text-xs space-y-1 mt-2">
-              <div>Effective Volume = {raw.effectiveVolume.toFixed(2)}</div>
+              <div>BA7 (Effective Volume) = {raw.effectiveVolume?.toFixed(2) || 'N/A'}</div>
+              <div>BB7 (Required Agents) = {raw.requiredAgents?.toFixed(2) || 'N/A'}</div>
               <div className="font-medium mt-2">Calculation:</div>
-              <div>= {value}</div>
+              <div>Influx = {raw.effectiveVolume?.toFixed(2) || 'N/A'} ÷ {raw.requiredAgents?.toFixed(2) || 'N/A'} = {value}</div>
+              <div className="text-xs mt-1 italic">Volume per required agent ratio</div>
             </div>
           </div>
         );
