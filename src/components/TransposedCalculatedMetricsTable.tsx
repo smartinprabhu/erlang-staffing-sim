@@ -100,8 +100,10 @@ export function TransposedCalculatedMetricsTable({
       // Basic requirement: Raw staff hours / adjusted agent work hours
       const basicRequiredAgents = agentWorkHours > 0 ? rawStaffHours / agentWorkHours : 0;
 
-      // Erlang-C calculation uses effective volume for traffic intensity
-      const trafficIntensity = (effectiveVolume * avgAHT) / 3600;
+      // Excel SMORT traffic calculation: BD7*2 pattern (30-min interval * 2 for hourly)
+      // Traffic intensity for 30-min interval, then doubled for hourly Erlang calculation
+      const trafficIntensityHalfHour = (effectiveVolume * avgAHT) / 1800; // 30-min interval
+      const trafficIntensity = trafficIntensityHalfHour * 2; // BD7*2 pattern from Excel
       const erlangRequiredAgents = effectiveVolume > 0 ?
         erlangAgents(configData.slaTarget / 100, configData.serviceTime, trafficIntensity, avgAHT) : 0;
 
