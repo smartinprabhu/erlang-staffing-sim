@@ -14,7 +14,7 @@ export function DailySummaryTable({ results }: DailySummaryTableProps) {
     
     return {
       date: `${baseDate.getDate().toString().padStart(2, '0')}/${(baseDate.getMonth() + 1).toString().padStart(2, '0')}/2025`,
-      totalVolume: Math.floor(Math.random() * 2000) + 1000,
+      totalVolume: Math.floor(Math.random() * 200) + 150, // 150-350 daily total (consistent with 8-14 per 30min interval)
       avgSLA: Math.random() * 40 + 60,
       occupancy: Math.random() * 20 + 75,
       avgStaffing: Math.floor(Math.random() * 10) + 15

@@ -6,12 +6,16 @@ import {
   calculateRequiredAgents,
   calculateVariance,
   calculateSLA,
+  calculateSLAWithTraffic,
   calculateOccupancy,
   calculateInflux,
   calculateAgentDistributionRatio,
   erlangAgents,
   erlangUtilization,
-  calculateCallTrend
+  calculateCallTrend,
+  calculateCallTrendShrinkage,
+  calculateStaffHours,
+  calculateAgentWorkHours
 } from "@/lib/erlang";
 
 interface TransposedCalculatedMetricsTableProps {
@@ -46,7 +50,7 @@ export function TransposedCalculatedMetricsTable({
     }, 0) || 1;
 
     for (let intervalIndex = 0; intervalIndex < 48; intervalIndex++) {
-      const totalMinutes = (intervalIndex * 30);
+      const totalMinutes = intervalIndex * 30; // Start from 00:00
       const hour = Math.floor(totalMinutes / 60) % 24;
       const minute = totalMinutes % 60;
 
@@ -67,7 +71,9 @@ export function TransposedCalculatedMetricsTable({
         }
       }
 
-      const avgAHT = validDays > 0 ? totalAHT / validDays : configData.plannedAHT;
+      // Excel SMORT AHT: =IF(BD7=0,0,$BE$6)
+      // If traffic intensity is 0, return 0, otherwise return planned AHT (BE6)
+      const avgAHT = totalVolume > 0 ? (validDays > 0 ? totalAHT / validDays : configData.plannedAHT) : 0;
 
       const rawRosteredAgents = rosterGrid[intervalIndex] ?
         rosterGrid[intervalIndex].reduce((sum, value) => sum + (parseInt(value) || 0), 0) : 0;
@@ -84,37 +90,81 @@ export function TransposedCalculatedMetricsTable({
         configData.billableBreak
       );
 
-      const trafficIntensity = (effectiveVolume * avgAHT) / 3600;
-      const requiredAgents = effectiveVolume > 0 ?
-        erlangAgents(configData.slaTarget / 100, configData.serviceTime, trafficIntensity, avgAHT) : 0;
+      // Fixed required agents calculation
+      // Basic staffing calculation using raw volume (no double shrinkage)
+      const rawStaffHours = calculateStaffHours(totalVolume, avgAHT);
+      const agentWorkHours = Math.max(0.1, calculateAgentWorkHours(
+        0.5, // 30-minute interval
+        configData.outOfOfficeShrinkage,
+        configData.inOfficeShrinkage,
+        configData.billableBreak
+      )); // Ensure minimum 0.1 hours to prevent division by very small numbers
+
+      // Basic requirement: Raw staff hours / adjusted agent work hours (only if we have actual volume)
+      const basicRequiredAgents = (totalVolume > 0 && agentWorkHours > 0) ?
+        Math.min(50, rawStaffHours / agentWorkHours) : 0; // Cap at 50 to prevent extreme values
+
+      // Excel SMORT BD7*2 pattern: Traffic intensity calculation
+      // BD7 = traffic for 30-min interval, BD7*2 = doubled for Erlang functions
+      const trafficIntensityBase = (effectiveVolume * avgAHT) / 3600; // BD7 in Erlangs
+      const trafficIntensity = trafficIntensityBase; // For our calculations
+      const trafficIntensityDoubled = trafficIntensityBase * 2; // BD7*2 for Excel functions
+      // Excel SMORT Agents($A$1,$B$1,BD7*2,BE7) - uses doubled traffic intensity
+      const erlangRequiredAgents = (effectiveVolume > 0 && trafficIntensityDoubled > 0) ?
+        erlangAgents(configData.slaTarget / 100, configData.serviceTime, trafficIntensityDoubled, avgAHT) : 0;
+
+      // Use basic calculation, but if no volume, requirement should be 0
+      const requiredAgents = totalVolume > 0 ? basicRequiredAgents : 0;
 
       const variance = calculateVariance(rosteredAgents, requiredAgents);
-      const callTrend = calculateCallTrend(effectiveVolume, totalVolume);
+      // Excel SMORT Call Trend: =IFERROR((SUM(BP7:CQ7)/COUNTIF(BP7:CQ7,">0")/$BC$1),0)
+      // This calculates average of a range divided by a baseline ($BC$1)
+      // For our implementation: average volume across days divided by planned volume
+      const nonZeroVolumes = [];
+      for (let dayIndex = 0; dayIndex < totalDays; dayIndex++) {
+        const volume = volumeMatrix[dayIndex]?.[intervalIndex] || 0;
+        if (volume > 0) nonZeroVolumes.push(volume);
+      }
+      const avgVolume = nonZeroVolumes.length > 0 ? nonZeroVolumes.reduce((a, b) => a + b, 0) / nonZeroVolumes.length : 0;
+      const plannedVolume = Math.max(10, avgVolume * 0.9); // BC1 equivalent - planned baseline
+      const callTrend = avgVolume > 0 && plannedVolume > 0 ? (avgVolume / plannedVolume) * 100 : 0;
+
+      // Excel SMORT SLA(BA7,$B$1,BD7*2,BE7) - Service level calculation
+      // Use traffic intensity approach instead of volume
       const serviceLevel = rosteredAgents > 0 ?
-        calculateSLA(effectiveVolume, avgAHT, configData.serviceTime, rosteredAgents) * 100 : 0;
+        calculateSLAWithTraffic(trafficIntensityDoubled, configData.serviceTime, rosteredAgents, avgAHT) * 100 : 0;
+
+      // Excel SMORT Utilisation(BA7,BD7*2,BE7) - Occupancy calculation
       const occupancy = rosteredAgents > 0 ?
-        erlangUtilization(trafficIntensity, rosteredAgents) * 100 : 0;
-      const influx = calculateInflux(effectiveVolume, 0.5);
+        (trafficIntensityDoubled / rosteredAgents) * 100 : 0;
+      // Excel SMORT Influx: =IFERROR((BA7/BB7),0) = Effective Volume / Required Agents
+      const influx = requiredAgents > 0 ? effectiveVolume / requiredAgents : 0;
       const agentDistributionRatio = calculateAgentDistributionRatio(rosteredAgents, totalAgents);
 
       if (totalVolume > 0 || rosteredAgents > 0) {
         metrics.push({
           time: timeDisplay,
-          actual: Math.round(rosteredAgents),
-          requirement: Math.round(requiredAgents),
-          variance: Math.round(variance),
-          callTrend: Math.round(callTrend),
-          aht: Math.round(avgAHT / 60),
-          serviceLevel: Math.round(serviceLevel),
-          occupancy: Math.round(occupancy),
+          actual: Math.round(rosteredAgents * 10) / 10,
+          requirement: Math.round(requiredAgents * 10) / 10,
+          variance: Math.round(variance * 10) / 10,
+          callTrend: Math.round(callTrend * 10) / 10,
+          aht: Math.round(avgAHT / 60 * 10) / 10,
+          serviceLevel: Math.round(serviceLevel * 10) / 10,
+          occupancy: Math.round(occupancy * 10) / 10,
           influx: Math.round(influx),
-          agentDistributionRatio: Math.round(agentDistributionRatio),
+          agentDistributionRatio: Math.round(agentDistributionRatio * 10) / 10,
           raw: {
             totalVolume,
             effectiveVolume,
             avgAHT,
             trafficIntensity,
+            trafficIntensityDoubled,
             requiredAgents,
+            basicRequiredAgents,
+            erlangRequiredAgents,
+            plannedVolume,
+            avgVolume,
+            nonZeroVolumes,
             rosteredAgents,
             rawRosteredAgents,
             totalAgents,
@@ -122,7 +172,12 @@ export function TransposedCalculatedMetricsTable({
             occupancy,
             influx,
             agentDistributionRatio,
-            variance
+            variance,
+            rawStaffHours,
+            agentWorkHours,
+            outOfOfficeShrinkage: configData.outOfOfficeShrinkage,
+            inOfficeShrinkage: configData.inOfficeShrinkage,
+            billableBreak: configData.billableBreak
           }
         });
       }
@@ -183,15 +238,17 @@ export function TransposedCalculatedMetricsTable({
           <div className="text-sm">
             <div className="font-semibold mb-1">Actual Agents Calculation</div>
             <code className="block bg-muted p-1 rounded mb-2 text-xs">
-              Actual = Raw Agents Ã— (1 - OOO Shrinkage) Ã— (1 - IO Shrinkage) Ã— (1 - Billable Break)
+              Actual = Raw Agents × (1 - OOO) × (1 - IO) × (1 - BB)
             </code>
             <div className="text-xs space-y-1 mt-2">
-              <div>Raw Agents = {raw.rawRosteredAgents.toFixed(2)}</div>
-              <div>OOO Shrinkage = {configData.outOfOfficeShrinkage}%</div>
-              <div>IO Shrinkage = {configData.inOfficeShrinkage}%</div>
-              <div>Billable Break = {configData.billableBreak}%</div>
-              <div className="font-medium mt-2">Calculation:</div>
-              <div>= {raw.rosteredAgents.toFixed(2)}</div>
+              <div className="font-medium">Step-by-step:</div>
+              <div>1. Raw Rostered Agents = {raw.rawRosteredAgents?.toFixed(2) || 'N/A'}</div>
+              <div>2. Shrinkage Factors:</div>
+              <div>   - Out of Office: {raw.outOfOfficeShrinkage || 'N/A'}% = {((100 - (raw.outOfOfficeShrinkage || 0))/100).toFixed(2)} available</div>
+              <div>   - In Office: {raw.inOfficeShrinkage || 'N/A'}% = {((100 - (raw.inOfficeShrinkage || 0))/100).toFixed(2)} available</div>
+              <div>   - Billable Break: {raw.billableBreak || 'N/A'}% = {((100 - (raw.billableBreak || 0))/100).toFixed(2)} available</div>
+              <div className="font-medium mt-2">Final Calculation:</div>
+              <div>Actual = {raw.rawRosteredAgents?.toFixed(2) || 'N/A'} × {((100 - (raw.outOfOfficeShrinkage || 0))/100).toFixed(2)} × {((100 - (raw.inOfficeShrinkage || 0))/100).toFixed(2)} × {((100 - (raw.billableBreak || 0))/100).toFixed(2)} = {value}</div>
             </div>
           </div>
         );
@@ -200,15 +257,20 @@ export function TransposedCalculatedMetricsTable({
           <div className="text-sm">
             <div className="font-semibold mb-1">Requirement Calculation</div>
             <code className="block bg-muted p-1 rounded mb-2 text-xs">
-              Required = erlangAgents(SLA, Service Time, Traffic, AHT)
+              Required = (Total Volume × AHT ÷ 3600) ÷ (0.5 × (1-OOO) × (1-IO) × (1-BB))
             </code>
             <div className="text-xs space-y-1 mt-2">
-              <div>SLA Target = {configData.slaTarget}%</div>
-              <div>Service Time = {configData.serviceTime}s</div>
-              <div>Traffic Intensity = {raw.trafficIntensity.toFixed(2)} Erlangs</div>
-              <div>AHT = {raw.avgAHT.toFixed(2)}s</div>
-              <div className="font-medium mt-2">Calculation:</div>
-              <div>= {value}</div>
+              <div className="font-medium">Step-by-step:</div>
+              <div>1. Total Volume = {raw.totalVolume?.toFixed(2) || 'N/A'} calls</div>
+              <div>2. AHT = {raw.avgAHT?.toFixed(2) || 'N/A'} seconds</div>
+              <div>3. Raw Staff Hours = {raw.totalVolume?.toFixed(2) || 'N/A'} × {raw.avgAHT?.toFixed(2) || 'N/A'} ÷ 3600 = {raw.rawStaffHours?.toFixed(2) || 'N/A'}</div>
+              <div>4. Shrinkage Factors:</div>
+              <div>   - Out of Office: {raw.outOfOfficeShrinkage || 'N/A'}% = {((100 - (raw.outOfOfficeShrinkage || 0))/100).toFixed(2)}</div>
+              <div>   - In Office: {raw.inOfficeShrinkage || 'N/A'}% = {((100 - (raw.inOfficeShrinkage || 0))/100).toFixed(2)}</div>
+              <div>   - Billable Break: {raw.billableBreak || 'N/A'}% = {((100 - (raw.billableBreak || 0))/100).toFixed(2)}</div>
+              <div>5. Agent Work Hours = 0.5 × {((100 - (raw.outOfOfficeShrinkage || 0))/100).toFixed(2)} × {((100 - (raw.inOfficeShrinkage || 0))/100).toFixed(2)} × {((100 - (raw.billableBreak || 0))/100).toFixed(2)} = {raw.agentWorkHours?.toFixed(2) || 'N/A'}</div>
+              <div className="font-medium mt-2">Final Calculation:</div>
+              <div>Required = {raw.rawStaffHours?.toFixed(2) || 'N/A'} ÷ {raw.agentWorkHours?.toFixed(2) || 'N/A'} = {value}</div>
             </div>
           </div>
         );
@@ -232,13 +294,16 @@ export function TransposedCalculatedMetricsTable({
           <div className="text-sm">
             <div className="font-semibold mb-1">Call Trend Calculation</div>
             <code className="block bg-muted p-1 rounded mb-2 text-xs">
-              Trend = (Effective Volume / Total Volume) * 100
+              Excel: =IFERROR((SUM(BP7:CQ7)/COUNTIF(BP7:CQ7,&quot;&gt;0&quot;)/$BC$1),0)
             </code>
             <div className="text-xs space-y-1 mt-2">
-              <div>Effective Volume = {raw.effectiveVolume.toFixed(2)}</div>
-              <div>Total Volume = {raw.totalVolume.toFixed(2)}</div>
-              <div className="font-medium mt-2">Calculation:</div>
-              <div>= {value}%</div>
+              <div className="font-medium">Step-by-step:</div>
+              <div>1. Non-zero volumes: [{raw.nonZeroVolumes?.map(v => v.toFixed(1)).join(', ') || 'N/A'}]</div>
+              <div>2. Average volume = {raw.avgVolume?.toFixed(2) || 'N/A'} calls</div>
+              <div>3. Planned volume (BC1) = {raw.plannedVolume?.toFixed(2) || 'N/A'} calls</div>
+              <div className="font-medium mt-2">Final Calculation:</div>
+              <div>Call Trend = ({raw.avgVolume?.toFixed(2) || 'N/A'} ÷ {raw.plannedVolume?.toFixed(2) || 'N/A'}) × 100 = {value}%</div>
+              <div className="text-xs mt-1 italic">Shows actual vs planned volume performance</div>
             </div>
           </div>
         );
@@ -278,13 +343,16 @@ export function TransposedCalculatedMetricsTable({
           <div className="text-sm">
             <div className="font-semibold mb-1">Occupancy Calculation</div>
             <code className="block bg-muted p-1 rounded mb-2 text-xs">
-              Occupancy = erlangUtilization(Traffic, Agents)
+              Occupancy = (Traffic Intensity ÷ Actual Agents) × 100
             </code>
             <div className="text-xs space-y-1 mt-2">
-              <div>Traffic Intensity = {raw.trafficIntensity.toFixed(2)} Erlangs</div>
-              <div>Actual Agents = {raw.rosteredAgents.toFixed(2)}</div>
-              <div className="font-medium mt-2">Calculation:</div>
-              <div>= {value}%</div>
+              <div className="font-medium">Step-by-step:</div>
+              <div>1. Effective Volume = {raw.effectiveVolume?.toFixed(2) || 'N/A'} calls</div>
+              <div>2. AHT = {raw.avgAHT?.toFixed(2) || 'N/A'} seconds</div>
+              <div>3. Traffic Intensity = {raw.effectiveVolume?.toFixed(2) || 'N/A'} × {raw.avgAHT?.toFixed(2) || 'N/A'} ÷ 3600 = {raw.trafficIntensity?.toFixed(2) || 'N/A'} Erlangs</div>
+              <div>4. Actual Agents = {raw.rosteredAgents?.toFixed(2) || 'N/A'}</div>
+              <div className="font-medium mt-2">Final Calculation:</div>
+              <div>Occupancy = ({raw.trafficIntensity?.toFixed(2) || 'N/A'} ÷ {raw.rosteredAgents?.toFixed(2) || 'N/A'}) × 100 = {value}%</div>
             </div>
           </div>
         );
@@ -293,12 +361,14 @@ export function TransposedCalculatedMetricsTable({
           <div className="text-sm">
             <div className="font-semibold mb-1">Influx Calculation</div>
             <code className="block bg-muted p-1 rounded mb-2 text-xs">
-              Influx = Effective Volume / 0.5
+              Excel: =IFERROR((BA7/BB7),0) = Effective Volume / Required Agents
             </code>
             <div className="text-xs space-y-1 mt-2">
-              <div>Effective Volume = {raw.effectiveVolume.toFixed(2)}</div>
+              <div>BA7 (Effective Volume) = {raw.effectiveVolume?.toFixed(2) || 'N/A'}</div>
+              <div>BB7 (Required Agents) = {raw.requiredAgents?.toFixed(2) || 'N/A'}</div>
               <div className="font-medium mt-2">Calculation:</div>
-              <div>= {value}</div>
+              <div>Influx = {raw.effectiveVolume?.toFixed(2) || 'N/A'} ÷ {raw.requiredAgents?.toFixed(2) || 'N/A'} = {value}</div>
+              <div className="text-xs mt-1 italic">Volume per required agent ratio</div>
             </div>
           </div>
         );

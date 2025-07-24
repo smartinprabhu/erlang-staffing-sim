@@ -70,18 +70,18 @@ export function erlangC(traffic: number, agents: number): number {
  */
 export function calculateAgents(slaTarget: number, serviceTime: number, traffic: number, aht: number): number {
   if (traffic <= 0 || aht <= 0) return 0;
-  
+
   const trafficIntensity = traffic * (aht / 3600); // Convert to Erlangs
   let agents = Math.ceil(trafficIntensity);
-  
+
   // Iterate to find minimum agents to meet SLA
-  for (let n = agents; n <= agents + 50; n++) {
+  for (let n = agents; n <= agents + 100; n++) {
     const sla = calculateSLA(traffic, aht, serviceTime, n);
     if (sla >= slaTarget) {
       return n;
     }
   }
-  
+
   return agents;
 }
 
@@ -171,7 +171,8 @@ export function calculateAgentWorkHours(
   inOfficeShrinkage: number,
   billableBreak: number
 ): number {
-  return intervalHours * (1 - (outOfOfficeShrinkage + inOfficeShrinkage + billableBreak) / 100);
+  // Excel formula: IntervalHours * (1 - OutOfOffice) * (1 - InOffice) * (1 - BillableBreak)
+  return intervalHours * (1 - outOfOfficeShrinkage / 100) * (1 - inOfficeShrinkage / 100) * (1 - billableBreak / 100);
 }
 
 /**
@@ -191,10 +192,12 @@ export function calculateRequiredAgents(
   billableBreak: number
 ): number {
   if (volume <= 0 || aht <= 0) return 0;
-  
-  const staffHours = calculateStaffHours(volume, aht);
+
+  // Excel SMORT formula: (Volume * AHT / 3600) / (0.5 * (1-OOO) * (1-IO) * (1-BB))
+  const effectiveVolume = calculateEffectiveVolume(volume, outOfOfficeShrinkage, inOfficeShrinkage, billableBreak);
+  const staffHours = calculateStaffHours(effectiveVolume, aht);
   const agentWorkHours = calculateAgentWorkHours(0.5, outOfOfficeShrinkage, inOfficeShrinkage, billableBreak);
-  
+
   return staffHours / agentWorkHours;
 }
 
@@ -294,6 +297,44 @@ export function erlangUtilization(trafficIntensity: number, agents: number): num
  * @returns Call trend percentage
  */
 export function calculateCallTrend(actualVolume: number, forecastVolume: number): number {
-  if (forecastVolume <= 0) return 100;
+  if (forecastVolume <= 0) return actualVolume > 0 ? 100 : 0;
   return (actualVolume / forecastVolume) * 100;
+}
+
+/**
+ * Excel SMORT: Calculates Call Trend based on effective vs total volume
+ * @param effectiveVolume - Effective volume after shrinkage
+ * @param totalVolume - Total raw volume
+ * @returns Call trend percentage showing shrinkage impact
+ */
+export function calculateCallTrendShrinkage(effectiveVolume: number, totalVolume: number): number {
+  if (totalVolume <= 0) return 0;
+  return (effectiveVolume / totalVolume) * 100;
+}
+
+/**
+ * Excel SMORT SLA function: SLA(BA7,$B$1,BD7*2,BE7)
+ * @param trafficIntensity - Traffic intensity in Erlangs (already doubled)
+ * @param serviceTime - Service time threshold in seconds
+ * @param agents - Number of agents
+ * @param aht - Average Handle Time in seconds
+ * @returns Service level percentage (0-1)
+ */
+export function calculateSLAWithTraffic(trafficIntensity: number, serviceTime: number, agents: number, aht: number): number {
+  if (trafficIntensity <= 0 || aht <= 0 || agents <= 0) return 1;
+
+  if (agents <= trafficIntensity) return 0; // Unstable system
+
+  // Excel VBA SLA formula using direct traffic intensity
+  const erlangCValue = erlangC(trafficIntensity, agents);
+  const rho = trafficIntensity / agents;
+
+  // Service time in hours
+  const serviceTimeHours = serviceTime / 3600;
+
+  // Excel formula: SLA = 1 - (ErlangC * EXP(-agents * (1 - rho) * serviceTime / AHT))
+  const avgServiceTime = aht / 3600; // AHT in hours
+  const waitingProb = erlangCValue * Math.exp(-agents * (1 - rho) * serviceTimeHours / avgServiceTime);
+
+  return Math.max(0, Math.min(1, 1 - waitingProb));
 }

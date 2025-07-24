@@ -29,12 +29,12 @@ const generateSampleVolumeData = (totalDays: number): number[][] => {
       const hour = Math.floor(((intervalIndex * 30) + 30) / 60) % 24;
       let baseVolume = 0;
       
-      if (hour >= 8 && hour <= 18) {
-        baseVolume = 50 + Math.floor(Math.random() * 30); // Business hours: 50-80
-      } else if (hour >= 6 && hour <= 22) {
-        baseVolume = 20 + Math.floor(Math.random() * 20); // Extended hours: 20-40
+      if (hour >= 9 && hour <= 17) {
+        baseVolume = Math.random() < 0.8 ? 2 + Math.floor(Math.random() * 3) : 0; // Business hours: 2-5 calls or 0
+      } else if (hour >= 7 && hour <= 20) {
+        baseVolume = Math.random() < 0.4 ? 1 + Math.floor(Math.random() * 2) : 0; // Extended hours: 1-3 calls or 0
       } else {
-        baseVolume = 5 + Math.floor(Math.random() * 10); // Night hours: 5-15
+        baseVolume = Math.random() < 0.1 ? 1 : 0; // Night hours: mostly 0, rare 1 call
       }
       
       dayVolumes.push(baseVolume);
@@ -83,14 +83,14 @@ export function InputConfigurationScreen({ onRunSimulation }: InputConfiguration
   const [fromDate, setFromDate] = useState("2025-06-29");
   const [toDate, setToDate] = useState("2025-07-26");
   const [lob, setLob] = useState("Phone");
-  const [plannedAHT, setPlannedAHT] = useState(1560);
+  const [plannedAHT, setPlannedAHT] = useState(1560); // 26 minutes
   const [slaTarget, setSlaTarget] = useState(80);
   const [serviceTime, setServiceTime] = useState(30);
   const [inOfficeShrinkage, setInOfficeShrinkage] = useState(0);
   const [outOfOfficeShrinkage, setOutOfOfficeShrinkage] = useState(34.88);
   const [billableBreak, setBillableBreak] = useState(5.88);
   
-  // Initialize with sample data immediately
+  // Initialize with adjusted sample data immediately
   const [volumeMatrix, setVolumeMatrix] = useState<number[][]>(() => generateSampleVolumeData(4 * 7));
   const [ahtMatrix, setAHTMatrix] = useState<number[][]>(() => generateSampleAHTData(4 * 7));
   const [rosterGrid, setRosterGrid] = useState<string[][]>([]);
@@ -117,6 +117,13 @@ export function InputConfigurationScreen({ onRunSimulation }: InputConfiguration
     setVolumeMatrix([]);
     setAHTMatrix([]);
     setRosterGrid([]);
+  };
+
+  const regenerateVolumeData = () => {
+    // Regenerate volume and AHT data with new adjusted values
+    const totalDays = weeks * 7;
+    setVolumeMatrix(generateSampleVolumeData(totalDays));
+    setAHTMatrix(generateSampleAHTData(totalDays));
   };
 
   const calculateDateRange = (selectedWeeks: 4 | 8 | 12) => {
@@ -226,10 +233,14 @@ export function InputConfigurationScreen({ onRunSimulation }: InputConfiguration
                 12 Weeks
               </Button>
             </div>
-            <div className="flex items-end">
+            <div className="flex items-end gap-2">
               <Button variant="outline" onClick={handleClear} className="gap-2 text-xs">
                 <RotateCcw className="h-3 w-3" />
                 Clear All
+              </Button>
+              <Button variant="outline" onClick={regenerateVolumeData} className="gap-2 text-xs">
+                <Settings className="h-3 w-3" />
+                Adjust Volumes
               </Button>
             </div>
           </div>

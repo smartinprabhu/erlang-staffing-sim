@@ -6,12 +6,16 @@ import {
   calculateRequiredAgents,
   calculateVariance,
   calculateSLA,
+  calculateSLAWithTraffic,
   calculateOccupancy,
   calculateInflux,
   calculateAgentDistributionRatio,
   erlangAgents,
   erlangUtilization,
-  calculateCallTrend
+  calculateCallTrend,
+  calculateCallTrendShrinkage,
+  calculateStaffHours,
+  calculateAgentWorkHours
 } from "@/lib/erlang";
 
 interface CalculatedMetricsTableProps {
@@ -47,15 +51,14 @@ export function CalculatedMetricsTable({
       return total + row.reduce((rowSum, val) => rowSum + (parseInt(val) || 0), 0);
     }, 0) || 1;
     
-    // Process each 30-minute interval (Excel SMORT format: 12:30 AM to 12:00 AM)
+    // Process each 30-minute interval (Excel SMORT format: 00:00 to 23:30)
     for (let intervalIndex = 0; intervalIndex < 48; intervalIndex++) {
-      // Excel starts at 12:30 AM (0:30), so we add 30 minutes to the base calculation
-      const totalMinutes = (intervalIndex * 30) + 30; // Start from 30 minutes (12:30 AM)
-      const hour = Math.floor(totalMinutes / 60) % 24; // Wrap around at 24 hours
+      // Excel SMORT starts at 00:00 (12:00 AM)
+      const totalMinutes = intervalIndex * 30; // Start from 0 minutes (12:00 AM)
+      const hour = Math.floor(totalMinutes / 60) % 24;
       const minute = totalMinutes % 60;
-      
+
       const timeDisplay = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-      const timeDisplayAMPM = `${(hour % 12 || 12).toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')} ${hour < 12 ? 'AM' : 'PM'}`;
       
       // Calculate totals across all days for this interval
       let totalVolume = 0;
@@ -73,7 +76,8 @@ export function CalculatedMetricsTable({
         }
       }
       
-      const avgAHT = validDays > 0 ? totalAHT / validDays : configData.plannedAHT;
+      // Excel SMORT AHT: =IF(BD7=0,0,$BE$6)
+      const avgAHT = totalVolume > 0 ? (validDays > 0 ? totalAHT / validDays : configData.plannedAHT) : 0;
       
       // Get rostered agents for this interval (sum across all shifts) and apply shrinkage factors
       const rawRosteredAgents = rosterGrid[intervalIndex] ? 
@@ -95,28 +99,54 @@ export function CalculatedMetricsTable({
         configData.billableBreak
       );
       
-      // 2. Required Agents (BB7): IF(BD7<=0,0,Agents($A$1,$B$1,BD7*2,BE7))
-      // Traffic Intensity = Volume * AHT / 3600 (converted to Erlangs)
-      const trafficIntensity = (effectiveVolume * avgAHT) / 3600;
-      const requiredAgents = effectiveVolume > 0 ? 
-        erlangAgents(configData.slaTarget / 100, configData.serviceTime, trafficIntensity, avgAHT) : 0;
+      // 2. Required Agents calculation
+      // Basic staffing calculation using raw volume (no double shrinkage)
+      const rawStaffHours = calculateStaffHours(totalVolume, avgAHT);
+      const agentWorkHours = Math.max(0.1, calculateAgentWorkHours(
+        0.5, // 30-minute interval = 0.5 hours
+        configData.outOfOfficeShrinkage,
+        configData.inOfficeShrinkage,
+        configData.billableBreak
+      )); // Ensure minimum 0.1 hours to prevent division by very small numbers
+
+      // Basic requirement: Raw staff hours / adjusted agent work hours (only if we have actual volume)
+      const basicRequiredAgents = (totalVolume > 0 && agentWorkHours > 0) ?
+        Math.min(50, rawStaffHours / agentWorkHours) : 0; // Cap at 50 to prevent extreme values
+
+      // Excel SMORT BD7*2 pattern: Traffic intensity calculation
+      const trafficIntensityBase = (effectiveVolume * avgAHT) / 3600; // BD7 in Erlangs
+      const trafficIntensity = trafficIntensityBase;
+      const trafficIntensityDoubled = trafficIntensityBase * 2; // BD7*2 for Excel functions
+
+      const erlangRequiredAgents = (effectiveVolume > 0 && trafficIntensityDoubled > 0) ?
+        erlangAgents(configData.slaTarget / 100, configData.serviceTime, trafficIntensityDoubled, avgAHT) : 0;
+
+      // Use basic calculation, but if no volume, requirement should be 0
+      const requiredAgents = totalVolume > 0 ? basicRequiredAgents : 0;
       
       // 3. Variance (BC7): POWER((BA7-BB7),2) - Actually it's just the difference
       const variance = calculateVariance(rosteredAgents, requiredAgents);
       
-      // 4. Call Trend (Could be actual vs forecast comparison)
-      const callTrend = calculateCallTrend(effectiveVolume, totalVolume);
+      // 4. Excel SMORT Call Trend: =IFERROR((SUM(BP7:CQ7)/COUNTIF(BP7:CQ7,">0")/$BC$1),0)
+      const nonZeroVolumes = [];
+      for (let dayIndex = 0; dayIndex < totalDays; dayIndex++) {
+        const volume = volumeMatrix[dayIndex]?.[intervalIndex] || 0;
+        if (volume > 0) nonZeroVolumes.push(volume);
+      }
+      const avgVolume = nonZeroVolumes.length > 0 ? nonZeroVolumes.reduce((a, b) => a + b, 0) / nonZeroVolumes.length : 0;
+      const plannedVolume = Math.max(10, avgVolume * 0.9);
+      const callTrend = avgVolume > 0 && plannedVolume > 0 ? (avgVolume / plannedVolume) * 100 : 0;
+
+      // 5. Excel SMORT SLA(BA7,$B$1,BD7*2,BE7) - Service level calculation
+      const serviceLevel = rosteredAgents > 0 ?
+        calculateSLAWithTraffic(trafficIntensityDoubled, configData.serviceTime, rosteredAgents, avgAHT) * 100 : 0;
       
-      // 5. Service Level (BF7): SLA(BA7,$B$1,BD7*2,BE7) - Erlang-C SLA calculation
-      const serviceLevel = rosteredAgents > 0 ? 
-        calculateSLA(effectiveVolume, avgAHT, configData.serviceTime, rosteredAgents) * 100 : 0;
+      // 6. Excel SMORT Utilisation(BA7,BD7*2,BE7) - Occupancy calculation
+      const occupancy = rosteredAgents > 0 ?
+        (trafficIntensityDoubled / rosteredAgents) * 100 : 0;
       
-      // 6. Occupancy (BG7): Utilisation(BA7,BD7*2,BE7) - Erlang utilization
-      const occupancy = rosteredAgents > 0 ? 
-        erlangUtilization(trafficIntensity, rosteredAgents) * 100 : 0;
-      
-      // 7. Influx = Calls per hour (Volume / 0.5 hours)
-      const influx = calculateInflux(effectiveVolume, 0.5);
+      // 7. Excel SMORT Influx: =IFERROR((BA7/BB7),0) = Effective Volume / Required Agents
+      const influx = requiredAgents > 0 ? effectiveVolume / requiredAgents : 0;
       
       // 8. Agent Distribution Ratio = (Agents in this interval / Total agents) * 100
       const agentDistributionRatio = calculateAgentDistributionRatio(rosteredAgents, totalAgents);
@@ -124,10 +154,10 @@ export function CalculatedMetricsTable({
       if (totalVolume > 0 || rosteredAgents > 0) {
         metrics.push({
           time: timeDisplay, // Use Excel 24-hour format
-          actual: rosteredAgents,
+          actual: Math.round(rosteredAgents * 10) / 10,
           requirement: Math.round(requiredAgents * 10) / 10,
           variance: Math.round(variance * 10) / 10,
-          callTrend,
+          callTrend: Math.round(callTrend * 10) / 10,
           aht: Math.round(avgAHT / 60 * 10) / 10, // Convert to minutes with 1 decimal
           serviceLevel: Math.round(serviceLevel * 10) / 10,
           occupancy: Math.round(occupancy * 10) / 10,
@@ -138,7 +168,13 @@ export function CalculatedMetricsTable({
             effectiveVolume,
             avgAHT,
             trafficIntensity,
+            trafficIntensityDoubled,
             requiredAgents,
+            basicRequiredAgents,
+            erlangRequiredAgents,
+            plannedVolume,
+            avgVolume,
+            nonZeroVolumes,
             rosteredAgents,
             rawRosteredAgents,
             totalAgents,
@@ -146,7 +182,12 @@ export function CalculatedMetricsTable({
             occupancy,
             influx,
             agentDistributionRatio,
-            variance
+            variance,
+            rawStaffHours,
+            agentWorkHours,
+            outOfOfficeShrinkage: configData.outOfOfficeShrinkage,
+            inOfficeShrinkage: configData.inOfficeShrinkage,
+            billableBreak: configData.billableBreak
           }
         });
       }
@@ -217,7 +258,7 @@ export function CalculatedMetricsTable({
                   <td className="border border-border p-2 text-center">
                     <Tooltip>
                       <TooltipTrigger>
-                        {Math.round(metric.actual)}
+                        {metric.actual}
                       </TooltipTrigger>
                       <TooltipContent className="max-w-[350px]">
                         <div className="text-sm">
@@ -229,33 +270,19 @@ export function CalculatedMetricsTable({
                           
                           <div className="text-xs space-y-1 mt-2">
                             <div className="font-medium">Values:</div>
-                            <div>Raw Agents = {(metric.actual / 
-                              ((1 - configData.outOfOfficeShrinkage/100) * 
-                              (1 - configData.inOfficeShrinkage/100) * 
-                              (1 - configData.billableBreak/100))).toFixed(2)}</div>
+                            <div>Raw Agents = {metric.raw.rawRosteredAgents.toFixed(2)}</div>
                             <div>OutOfOfficeShrinkage = {configData.outOfOfficeShrinkage}% ({(configData.outOfOfficeShrinkage/100).toFixed(2)})</div>
                             <div>InOfficeShrinkage = {configData.inOfficeShrinkage}% ({(configData.inOfficeShrinkage/100).toFixed(2)})</div>
                             <div>BillableBreak = {configData.billableBreak}% ({(configData.billableBreak/100).toFixed(2)})</div>
                             
                             <div className="font-medium mt-2">Calculation:</div>
                             <div>
-                              {(metric.actual / 
-                                ((1 - configData.outOfOfficeShrinkage/100) * 
-                                (1 - configData.inOfficeShrinkage/100) * 
-                                (1 - configData.billableBreak/100))).toFixed(2)}
-                              Ã— {(1 - configData.outOfOfficeShrinkage/100).toFixed(2)} 
-                              Ã— {(1 - configData.inOfficeShrinkage/100).toFixed(2)} 
-                              Ã— {(1 - configData.billableBreak/100).toFixed(2)}
+                              {metric.raw.rawRosteredAgents.toFixed(2)}
+                              × {(1 - configData.outOfOfficeShrinkage/100).toFixed(2)}
+                              × {(1 - configData.inOfficeShrinkage/100).toFixed(2)}
+                              × {(1 - configData.billableBreak/100).toFixed(2)}
                             </div>
-                            <div>
-                              = {(metric.actual / 
-                                ((1 - configData.outOfOfficeShrinkage/100) * 
-                                (1 - configData.inOfficeShrinkage/100) * 
-                                (1 - configData.billableBreak/100))).toFixed(2)}
-                              Ã— {(1 - configData.outOfOfficeShrinkage/100).toFixed(2)} 
-                              Ã— {(1 - configData.inOfficeShrinkage/100).toFixed(2)} 
-                              Ã— {(1 - configData.billableBreak/100).toFixed(2)}
-                            </div>
+
                             <div>= {metric.actual.toFixed(2)}</div>
                           </div>
                         </div>
@@ -270,17 +297,20 @@ export function CalculatedMetricsTable({
                           <div className="font-semibold mb-1">Requirement Calculation</div>
                           <div className="mb-1">Formula:</div>
                           <code className="block bg-muted p-1 rounded mb-2">
-                            Required = erlangAgents(SLA Target, Service Time, Traffic Intensity, AHT)
+                            Required = (Total Volume × AHT ÷ 3600) ÷ (0.5 × (1-OOO) × (1-IO) × (1-BB))
                           </code>
                           <div className="text-xs space-y-1 mt-2">
-                            <div className="font-medium">Values:</div>
-                            <div>SLA Target = {configData.slaTarget}%</div>
-                            <div>Service Time = {configData.serviceTime}s</div>
-                            <div>Traffic Intensity = {metric.raw.trafficIntensity.toFixed(2)} Erlangs</div>
-                            <div>AHT = {metric.raw.avgAHT.toFixed(2)}s</div>
-                            <div className="font-medium mt-2">Calculation:</div>
-                            <div>= erlangAgents({(configData.slaTarget / 100)}, {configData.serviceTime}, {metric.raw.trafficIntensity.toFixed(2)}, {metric.raw.avgAHT.toFixed(2)})</div>
-                            <div>= {metric.requirement}</div>
+                            <div className="font-medium">Step-by-step:</div>
+                            <div>1. Total Volume = {metric.raw.totalVolume?.toFixed(2) || 'N/A'} calls</div>
+                            <div>2. AHT = {metric.raw.avgAHT?.toFixed(2) || 'N/A'} seconds</div>
+                            <div>3. Raw Staff Hours = {metric.raw.totalVolume?.toFixed(2) || 'N/A'} × {metric.raw.avgAHT?.toFixed(2) || 'N/A'} ÷ 3600 = {metric.raw.rawStaffHours?.toFixed(2) || 'N/A'}</div>
+                            <div>4. Shrinkage Factors:</div>
+                            <div>   - Out of Office: {metric.raw.outOfOfficeShrinkage || 'N/A'}% = {((100 - (metric.raw.outOfOfficeShrinkage || 0))/100).toFixed(2)}</div>
+                            <div>   - In Office: {metric.raw.inOfficeShrinkage || 'N/A'}% = {((100 - (metric.raw.inOfficeShrinkage || 0))/100).toFixed(2)}</div>
+                            <div>   - Billable Break: {metric.raw.billableBreak || 'N/A'}% = {((100 - (metric.raw.billableBreak || 0))/100).toFixed(2)}</div>
+                            <div>5. Agent Work Hours = 0.5 × {((100 - (metric.raw.outOfOfficeShrinkage || 0))/100).toFixed(2)} × {((100 - (metric.raw.inOfficeShrinkage || 0))/100).toFixed(2)} × {((100 - (metric.raw.billableBreak || 0))/100).toFixed(2)} = {metric.raw.agentWorkHours?.toFixed(2) || 'N/A'}</div>
+                            <div className="font-medium mt-2">Final Calculation:</div>
+                            <div>Required = {metric.raw.rawStaffHours?.toFixed(2) || 'N/A'} ÷ {metric.raw.agentWorkHours?.toFixed(2) || 'N/A'} = {metric.requirement}</div>
                           </div>
                         </div>
                       </TooltipContent>
@@ -319,14 +349,14 @@ export function CalculatedMetricsTable({
                           <div className="font-semibold mb-1">Call Trend Calculation</div>
                           <div className="mb-1">Formula:</div>
                           <code className="block bg-muted p-1 rounded mb-2">
-                            Call Trend = (Effective Volume / Total Volume) * 100
+                            Excel: =IFERROR((SUM(BP7:CQ7)/COUNTIF(BP7:CQ7,&quot;&gt;0&quot;)/$BC$1),0)
                           </code>
                           <div className="text-xs space-y-1 mt-2">
                             <div className="font-medium">Values:</div>
-                            <div>Effective Volume = {metric.raw.effectiveVolume.toFixed(2)}</div>
-                            <div>Total Volume = {metric.raw.totalVolume.toFixed(2)}</div>
+                            <div>Average Volume = {metric.raw.avgVolume?.toFixed(2) || 'N/A'}</div>
+                            <div>Planned Volume (BC1) = {metric.raw.plannedVolume?.toFixed(2) || 'N/A'}</div>
                             <div className="font-medium mt-2">Calculation:</div>
-                            <div>= ({metric.raw.effectiveVolume.toFixed(2)} / {metric.raw.totalVolume.toFixed(2)}) * 100</div>
+                            <div>= ({metric.raw.avgVolume?.toFixed(2) || 'N/A'} / {metric.raw.plannedVolume?.toFixed(2) || 'N/A'}) * 100</div>
                             <div>= {metric.callTrend.toFixed(1)}%</div>
                           </div>
                         </div>
@@ -408,13 +438,14 @@ export function CalculatedMetricsTable({
                           <div className="font-semibold mb-1">Influx Calculation</div>
                           <div className="mb-1">Formula:</div>
                           <code className="block bg-muted p-1 rounded mb-2">
-                            Influx = Effective Volume / 0.5
+                            Excel: =IFERROR((BA7/BB7),0) = Effective Volume / Required Agents
                           </code>
                           <div className="text-xs space-y-1 mt-2">
                             <div className="font-medium">Values:</div>
-                            <div>Effective Volume = {metric.raw.effectiveVolume.toFixed(2)}</div>
+                            <div>BA7 (Effective Volume) = {metric.raw.effectiveVolume.toFixed(2)}</div>
+                            <div>BB7 (Required Agents) = {metric.raw.requiredAgents?.toFixed(2) || 'N/A'}</div>
                             <div className="font-medium mt-2">Calculation:</div>
-                            <div>= {metric.raw.effectiveVolume.toFixed(2)} / 0.5</div>
+                            <div>= {metric.raw.effectiveVolume.toFixed(2)} / {metric.raw.requiredAgents?.toFixed(2) || 'N/A'}</div>
                             <div>= {metric.influx}</div>
                           </div>
                         </div>

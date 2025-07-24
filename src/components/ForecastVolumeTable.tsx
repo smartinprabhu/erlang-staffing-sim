@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -53,11 +52,11 @@ export function ForecastVolumeTable({
         const hour = Math.floor(i / 2);
         // Peak hours 9AM-5PM get higher volume
         if (hour >= 9 && hour <= 17) {
-          return Math.floor(Math.random() * 50) + 30;
-        } else if (hour >= 6 && hour <= 22) {
-          return Math.floor(Math.random() * 20) + 10;
+          return Math.random() < 0.8 ? Math.floor(Math.random() * 3) + 2 : 0; // 2-5 calls or 0
+        } else if (hour >= 7 && hour <= 20) {
+          return Math.random() < 0.4 ? Math.floor(Math.random() * 2) + 1 : 0; // 1-3 calls or 0
         }
-        return Math.floor(Math.random() * 5);
+        return Math.random() < 0.1 ? 1 : 0; // mostly 0, rare 1 call
       })
     );
     onVolumeMatrixChange(sampleData);
@@ -82,11 +81,11 @@ export function ForecastVolumeTable({
       Array(48).fill(0).map((_, i) => {
         const hour = Math.floor(i / 2);
         if (hour >= 9 && hour <= 17) {
-          return Math.floor(Math.random() * 50) + 30;
-        } else if (hour >= 6 && hour <= 22) {
-          return Math.floor(Math.random() * 20) + 10;
+          return Math.random() < 0.8 ? Math.floor(Math.random() * 3) + 2 : 0; // 2-5 calls or 0
+        } else if (hour >= 7 && hour <= 20) {
+          return Math.random() < 0.4 ? Math.floor(Math.random() * 2) + 1 : 0; // 1-3 calls or 0
         }
-        return Math.floor(Math.random() * 5);
+        return Math.random() < 0.1 ? 1 : 0; // mostly 0, rare 1 call
       })
     );
     onVolumeMatrixChange(sampleData);
