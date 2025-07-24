@@ -251,7 +251,7 @@ export function TransposedCalculatedMetricsTable({
           <div className="text-sm">
             <div className="font-semibold mb-1">Call Trend Calculation</div>
             <code className="block bg-muted p-1 rounded mb-2 text-xs">
-              Trend = (Effective Volume / Total Volume) * 100
+              Trend = (Effective Volume / Total Volume) * 100 (Shrinkage Impact)
             </code>
             <div className="text-xs space-y-1 mt-2">
               <div>Effective Volume = {raw.effectiveVolume.toFixed(2)}</div>
