@@ -100,20 +100,20 @@ export function TransposedCalculatedMetricsTable({
         configData.billableBreak
       );
 
-      // Basic requirement: Raw staff hours / adjusted agent work hours
-      const basicRequiredAgents = agentWorkHours > 0 ? rawStaffHours / agentWorkHours : 0;
+      // Basic requirement: Raw staff hours / adjusted agent work hours (capped for reasonableness)
+      const basicRequiredAgents = agentWorkHours > 0 ? Math.min(50, rawStaffHours / agentWorkHours) : 0;
 
       // Excel SMORT BD7*2 pattern: Traffic intensity calculation
       // BD7 = traffic for 30-min interval, BD7*2 = doubled for Erlang functions
       const trafficIntensityBase = (effectiveVolume * avgAHT) / 3600; // BD7 in Erlangs
       const trafficIntensity = trafficIntensityBase; // For our calculations
       const trafficIntensityDoubled = trafficIntensityBase * 2; // BD7*2 for Excel functions
-      // Excel SMORT Agents($A$1,$B$1,BD7*2,BE7) - uses doubled traffic intensity
+      // Excel SMORT Agents($A$1,$B$1,BD7*2,BE7) - uses doubled traffic intensity (capped)
       const erlangRequiredAgents = effectiveVolume > 0 ?
-        erlangAgents(configData.slaTarget / 100, configData.serviceTime, trafficIntensityDoubled, avgAHT) : 0;
+        Math.min(50, erlangAgents(configData.slaTarget / 100, configData.serviceTime, trafficIntensityDoubled, avgAHT)) : 0;
 
-      // Use basic calculation as primary, Erlang-C as validation for SLA
-      const requiredAgents = basicRequiredAgents;
+      // Use the lower of basic calculation and Erlang-C, capped at 100
+      const requiredAgents = Math.min(100, Math.max(basicRequiredAgents, erlangRequiredAgents));
 
       const variance = calculateVariance(rosteredAgents, requiredAgents);
       // Excel SMORT Call Trend: =IFERROR((SUM(BP7:CQ7)/COUNTIF(BP7:CQ7,">0")/$BC$1),0)
