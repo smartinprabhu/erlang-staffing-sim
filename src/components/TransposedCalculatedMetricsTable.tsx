@@ -109,11 +109,11 @@ export function TransposedCalculatedMetricsTable({
       const trafficIntensity = trafficIntensityBase; // For our calculations
       const trafficIntensityDoubled = trafficIntensityBase * 2; // BD7*2 for Excel functions
       // Excel SMORT Agents($A$1,$B$1,BD7*2,BE7) - uses doubled traffic intensity
-      const erlangRequiredAgents = effectiveVolume > 0 ?
+      const erlangRequiredAgents = (effectiveVolume > 0 && trafficIntensityDoubled > 0) ?
         erlangAgents(configData.slaTarget / 100, configData.serviceTime, trafficIntensityDoubled, avgAHT) : 0;
 
-      // Use basic calculation as primary
-      const requiredAgents = basicRequiredAgents;
+      // Use basic calculation, but if no volume, requirement should be 0
+      const requiredAgents = totalVolume > 0 ? basicRequiredAgents : 0;
 
       const variance = calculateVariance(rosteredAgents, requiredAgents);
       // Excel SMORT Call Trend: =IFERROR((SUM(BP7:CQ7)/COUNTIF(BP7:CQ7,">0")/$BC$1),0)
