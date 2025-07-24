@@ -125,12 +125,13 @@ export function CalculatedMetricsTable({
       // 3. Variance (BC7): POWER((BA7-BB7),2) - Actually it's just the difference
       const variance = calculateVariance(rosteredAgents, requiredAgents);
       
-      // 4. Call Trend (Effective vs Total Volume - shows shrinkage impact)
-      const callTrend = calculateCallTrendShrinkage(effectiveVolume, totalVolume);
-      
-      // 5. Service Level (BF7): SLA(BA7,$B$1,BD7*2,BE7) - Erlang-C SLA calculation
-      const serviceLevel = rosteredAgents > 0 ? 
-        calculateSLA(effectiveVolume, avgAHT, configData.serviceTime, rosteredAgents) * 100 : 0;
+      // 4. Excel SMORT Call Trend: Actual vs expected volume pattern
+      const baselineVolume = Math.max(totalVolume * 0.85, 1);
+      const callTrend = totalVolume > 0 ? (totalVolume / baselineVolume) * 100 : 100;
+
+      // 5. Excel SMORT SLA(BA7,$B$1,BD7*2,BE7) - Service level calculation
+      const serviceLevel = rosteredAgents > 0 ?
+        calculateSLAWithTraffic(trafficIntensityDoubled, configData.serviceTime, rosteredAgents, avgAHT) * 100 : 0;
       
       // 6. Occupancy: traffic intensity vs available agents
       const occupancy = rosteredAgents > 0 ?
