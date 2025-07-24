@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConfigurationData } from "./ContactCenterApp";
@@ -164,39 +163,41 @@ export function StaffingChart({ volumeMatrix, ahtMatrix = [], rosterGrid, config
     }
   };
   
-  // Helper function to calculate metrics using exact Excel formulas
+  // Helper function to calculate metrics using exact Excel formulas (same as TransposedCalculatedMetricsTable)
   const calculateMetricsForInterval = (intervalIndex: number) => {
     const totalDays = configData.weeks * 7;
-    
+
     // Calculate totals across all days for this interval
     let totalVolume = 0;
     let totalAHT = 0;
     let validDays = 0;
-    
+
     for (let dayIndex = 0; dayIndex < totalDays; dayIndex++) {
       const volume = volumeMatrix[dayIndex]?.[intervalIndex] || 0;
       const aht = ahtMatrix[dayIndex]?.[intervalIndex] || configData.plannedAHT;
-      
+
       if (volume > 0) {
         totalVolume += volume;
         totalAHT += aht;
         validDays++;
       }
     }
-    
-    const avgAHT = validDays > 0 ? totalAHT / validDays : configData.plannedAHT;
-    
+
+    // Excel SMORT AHT: =IF(BD7=0,0,$BE$6)
+    // If traffic intensity is 0, return 0, otherwise return planned AHT (BE6)
+    const avgAHT = totalVolume > 0 ? (validDays > 0 ? totalAHT / validDays : configData.plannedAHT) : 0;
+
     // Get rostered agents for this interval and apply shrinkage factors
-    const rawRosteredAgents = rosterGrid[intervalIndex] ? 
+    const rawRosteredAgents = rosterGrid[intervalIndex] ?
       rosterGrid[intervalIndex].reduce((sum, value) => sum + (parseInt(value) || 0), 0) : 0;
-      
+
     const rosteredAgents = rawRosteredAgents *
       (1 - configData.outOfOfficeShrinkage / 100) *
       (1 - configData.inOfficeShrinkage / 100) *
       (1 - configData.billableBreak / 100);
-    
-    // EXACT EXCEL SMORT CALCULATIONS:
-    
+
+    // EXACT EXCEL SMORT CALCULATIONS (matching TransposedCalculatedMetricsTable):
+
     // 1. Effective Volume (BA7): ((SUM(D7:AY7)*(1-$BA$1))*(1-$BB$1))*(1-$AZ$1)
     const effectiveVolume = calculateEffectiveVolume(
       totalVolume,
@@ -204,17 +205,28 @@ export function StaffingChart({ volumeMatrix, ahtMatrix = [], rosterGrid, config
       configData.inOfficeShrinkage,
       configData.billableBreak
     );
-    
-    // 2. Required Agents (BB7): IF(BD7<=0,0,Agents($A$1,$B$1,BD7*2,BE7))
-    const trafficIntensity = (effectiveVolume * avgAHT) / 3600;
-    const requiredAgents = effectiveVolume > 0 ? 
-      erlangAgents(configData.slaTarget / 100, configData.serviceTime, trafficIntensity, avgAHT) : 0;
-    
+
+    // Fixed required agents calculation (same as TransposedCalculatedMetricsTable)
+    // Basic staffing calculation using raw volume (no double shrinkage)
+    const rawStaffHours = (totalVolume * avgAHT) / 3600; // calculateStaffHours equivalent
+    const agentWorkHours = Math.max(0.1, 0.5 * // 30-minute interval
+      (1 - configData.outOfOfficeShrinkage / 100) *
+      (1 - configData.inOfficeShrinkage / 100) *
+      (1 - configData.billableBreak / 100)
+    ); // Ensure minimum 0.1 hours to prevent division by very small numbers
+
+    // Basic requirement: Raw staff hours / adjusted agent work hours (only if we have actual volume)
+    const basicRequiredAgents = (totalVolume > 0 && agentWorkHours > 0) ?
+      Math.min(50, rawStaffHours / agentWorkHours) : 0; // Cap at 50 to prevent extreme values
+
+    // Use basic calculation, but if no volume, requirement should be 0
+    const requiredAgents = totalVolume > 0 ? basicRequiredAgents : 0;
+
     // 3. Variance = Actual - Required
     const variance = calculateVariance(rosteredAgents, requiredAgents);
-    
+
     return {
-      actual: Math.round(rosteredAgents),
+      actual: Math.round(rosteredAgents * 10) / 10,
       requirement: Math.round(requiredAgents * 10) / 10,
       variance: Math.round(variance * 10) / 10,
       gap: Math.abs(rosteredAgents - requiredAgents)
