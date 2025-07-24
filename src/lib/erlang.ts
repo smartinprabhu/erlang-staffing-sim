@@ -311,3 +311,30 @@ export function calculateCallTrendShrinkage(effectiveVolume: number, totalVolume
   if (totalVolume <= 0) return 0;
   return (effectiveVolume / totalVolume) * 100;
 }
+
+/**
+ * Excel SMORT SLA function: SLA(BA7,$B$1,BD7*2,BE7)
+ * @param trafficIntensity - Traffic intensity in Erlangs (already doubled)
+ * @param serviceTime - Service time threshold in seconds
+ * @param agents - Number of agents
+ * @param aht - Average Handle Time in seconds
+ * @returns Service level percentage (0-1)
+ */
+export function calculateSLAWithTraffic(trafficIntensity: number, serviceTime: number, agents: number, aht: number): number {
+  if (trafficIntensity <= 0 || aht <= 0 || agents <= 0) return 1;
+
+  if (agents <= trafficIntensity) return 0; // Unstable system
+
+  // Excel VBA SLA formula using direct traffic intensity
+  const erlangCValue = erlangC(trafficIntensity, agents);
+  const rho = trafficIntensity / agents;
+
+  // Service time in hours
+  const serviceTimeHours = serviceTime / 3600;
+
+  // Excel formula: SLA = 1 - (ErlangC * EXP(-agents * (1 - rho) * serviceTime / AHT))
+  const avgServiceTime = aht / 3600; // AHT in hours
+  const waitingProb = erlangCValue * Math.exp(-agents * (1 - rho) * serviceTimeHours / avgServiceTime);
+
+  return Math.max(0, Math.min(1, 1 - waitingProb));
+}
