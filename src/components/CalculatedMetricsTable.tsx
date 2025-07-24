@@ -117,11 +117,11 @@ export function CalculatedMetricsTable({
       const trafficIntensity = trafficIntensityBase;
       const trafficIntensityDoubled = trafficIntensityBase * 2; // BD7*2 for Excel functions
 
-      const erlangRequiredAgents = effectiveVolume > 0 ?
+      const erlangRequiredAgents = (effectiveVolume > 0 && trafficIntensityDoubled > 0) ?
         erlangAgents(configData.slaTarget / 100, configData.serviceTime, trafficIntensityDoubled, avgAHT) : 0;
 
-      // Use basic calculation as primary
-      const requiredAgents = basicRequiredAgents;
+      // Use basic calculation, but if no volume, requirement should be 0
+      const requiredAgents = totalVolume > 0 ? basicRequiredAgents : 0;
       
       // 3. Variance (BC7): POWER((BA7-BB7),2) - Actually it's just the difference
       const variance = calculateVariance(rosteredAgents, requiredAgents);
