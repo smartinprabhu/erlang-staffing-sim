@@ -250,10 +250,7 @@ export function CalculatedMetricsTable({
                           
                           <div className="text-xs space-y-1 mt-2">
                             <div className="font-medium">Values:</div>
-                            <div>Raw Agents = {(metric.actual / 
-                              ((1 - configData.outOfOfficeShrinkage/100) * 
-                              (1 - configData.inOfficeShrinkage/100) * 
-                              (1 - configData.billableBreak/100))).toFixed(2)}</div>
+                            <div>Raw Agents = {metric.raw.rawRosteredAgents.toFixed(2)}</div>
                             <div>OutOfOfficeShrinkage = {configData.outOfOfficeShrinkage}% ({(configData.outOfOfficeShrinkage/100).toFixed(2)})</div>
                             <div>InOfficeShrinkage = {configData.inOfficeShrinkage}% ({(configData.inOfficeShrinkage/100).toFixed(2)})</div>
                             <div>BillableBreak = {configData.billableBreak}% ({(configData.billableBreak/100).toFixed(2)})</div>
