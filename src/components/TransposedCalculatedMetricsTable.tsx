@@ -87,28 +87,38 @@ export function TransposedCalculatedMetricsTable({
         configData.billableBreak
       );
 
-      // Improved required agents calculation
-      const staffHours = calculateStaffHours(effectiveVolume, avgAHT);
+      // Fixed required agents calculation
+      // Basic staffing calculation using raw volume (no double shrinkage)
+      const rawStaffHours = calculateStaffHours(totalVolume, avgAHT);
       const agentWorkHours = calculateAgentWorkHours(
-        0.5,
+        0.5, // 30-minute interval
         configData.outOfOfficeShrinkage,
         configData.inOfficeShrinkage,
         configData.billableBreak
       );
 
-      const basicRequiredAgents = agentWorkHours > 0 ? staffHours / agentWorkHours : 0;
+      // Basic requirement: Raw staff hours / adjusted agent work hours
+      const basicRequiredAgents = agentWorkHours > 0 ? rawStaffHours / agentWorkHours : 0;
+
+      // Erlang-C calculation uses effective volume for traffic intensity
       const trafficIntensity = (effectiveVolume * avgAHT) / 3600;
       const erlangRequiredAgents = effectiveVolume > 0 ?
         erlangAgents(configData.slaTarget / 100, configData.serviceTime, trafficIntensity, avgAHT) : 0;
 
-      const requiredAgents = Math.max(basicRequiredAgents, erlangRequiredAgents);
+      // Use basic calculation as primary, Erlang-C as validation for SLA
+      const requiredAgents = basicRequiredAgents;
 
       const variance = calculateVariance(rosteredAgents, requiredAgents);
+      // Call trend: shows shrinkage impact
       const callTrend = calculateCallTrendShrinkage(effectiveVolume, totalVolume);
+
+      // Service level based on effective volume and rostered agents
       const serviceLevel = rosteredAgents > 0 ?
         calculateSLA(effectiveVolume, avgAHT, configData.serviceTime, rosteredAgents) * 100 : 0;
+
+      // Occupancy: traffic intensity vs available agents
       const occupancy = rosteredAgents > 0 ?
-        erlangUtilization(trafficIntensity, rosteredAgents) * 100 : 0;
+        (trafficIntensity / rosteredAgents) * 100 : 0;
       const influx = calculateInflux(effectiveVolume, 0.5);
       const agentDistributionRatio = calculateAgentDistributionRatio(rosteredAgents, totalAgents);
 
@@ -140,8 +150,11 @@ export function TransposedCalculatedMetricsTable({
             influx,
             agentDistributionRatio,
             variance,
-            staffHours,
-            agentWorkHours
+            rawStaffHours,
+            agentWorkHours,
+            outOfOfficeShrinkage: configData.outOfOfficeShrinkage,
+            inOfficeShrinkage: configData.inOfficeShrinkage,
+            billableBreak: configData.billableBreak
           }
         });
       }
