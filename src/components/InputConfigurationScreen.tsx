@@ -119,6 +119,13 @@ export function InputConfigurationScreen({ onRunSimulation }: InputConfiguration
     setRosterGrid([]);
   };
 
+  const regenerateVolumeData = () => {
+    // Regenerate volume data with new adjusted values
+    const totalDays = weeks * 7;
+    setVolumeMatrix(generateSampleVolumeData(totalDays));
+    setAHTMatrix(generateSampleAHTData(totalDays));
+  };
+
   const calculateDateRange = (selectedWeeks: 4 | 8 | 12) => {
     setWeeks(selectedWeeks);
     const startDate = new Date("2025-06-29");
