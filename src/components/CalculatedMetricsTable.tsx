@@ -277,16 +277,16 @@ export function CalculatedMetricsTable({
                           <div className="font-semibold mb-1">Requirement Calculation</div>
                           <div className="mb-1">Formula:</div>
                           <code className="block bg-muted p-1 rounded mb-2">
-                            Required = erlangAgents(SLA Target, Service Time, Traffic Intensity, AHT)
+                            Required = Max(Basic Staff Hours / Agent Work Hours, Erlang-C)
                           </code>
                           <div className="text-xs space-y-1 mt-2">
                             <div className="font-medium">Values:</div>
-                            <div>SLA Target = {configData.slaTarget}%</div>
-                            <div>Service Time = {configData.serviceTime}s</div>
-                            <div>Traffic Intensity = {metric.raw.trafficIntensity.toFixed(2)} Erlangs</div>
-                            <div>AHT = {metric.raw.avgAHT.toFixed(2)}s</div>
+                            <div>Staff Hours = {metric.raw.staffHours?.toFixed(2) || 'N/A'}</div>
+                            <div>Agent Work Hours = {metric.raw.agentWorkHours?.toFixed(2) || 'N/A'}</div>
+                            <div>Basic Requirement = {metric.raw.basicRequiredAgents?.toFixed(2) || 'N/A'}</div>
+                            <div>Erlang-C Requirement = {metric.raw.erlangRequiredAgents?.toFixed(2) || 'N/A'}</div>
                             <div className="font-medium mt-2">Calculation:</div>
-                            <div>= erlangAgents({(configData.slaTarget / 100)}, {configData.serviceTime}, {metric.raw.trafficIntensity.toFixed(2)}, {metric.raw.avgAHT.toFixed(2)})</div>
+                            <div>= Max({metric.raw.basicRequiredAgents?.toFixed(2) || 'N/A'}, {metric.raw.erlangRequiredAgents?.toFixed(2) || 'N/A'})</div>
                             <div>= {metric.requirement}</div>
                           </div>
                         </div>
