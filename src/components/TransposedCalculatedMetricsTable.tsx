@@ -93,12 +93,12 @@ export function TransposedCalculatedMetricsTable({
       // Fixed required agents calculation
       // Basic staffing calculation using raw volume (no double shrinkage)
       const rawStaffHours = calculateStaffHours(totalVolume, avgAHT);
-      const agentWorkHours = calculateAgentWorkHours(
+      const agentWorkHours = Math.max(0.1, calculateAgentWorkHours(
         0.5, // 30-minute interval
         configData.outOfOfficeShrinkage,
         configData.inOfficeShrinkage,
         configData.billableBreak
-      );
+      )); // Ensure minimum 0.1 hours to prevent division by very small numbers
 
       // Basic requirement: Raw staff hours / adjusted agent work hours (only if we have actual volume)
       const basicRequiredAgents = (totalVolume > 0 && agentWorkHours > 0) ? rawStaffHours / agentWorkHours : 0;
