@@ -232,15 +232,20 @@ export function TransposedCalculatedMetricsTable({
           <div className="text-sm">
             <div className="font-semibold mb-1">Requirement Calculation</div>
             <code className="block bg-muted p-1 rounded mb-2 text-xs">
-              Required = Max(Basic Staff Hours / Agent Work Hours, Erlang-C)
+              Required = (Total Volume × AHT ÷ 3600) ÷ (0.5 × (1-OOO) × (1-IO) × (1-BB))
             </code>
             <div className="text-xs space-y-1 mt-2">
-              <div>Staff Hours = {raw.staffHours?.toFixed(2) || 'N/A'}</div>
-              <div>Agent Work Hours = {raw.agentWorkHours?.toFixed(2) || 'N/A'}</div>
-              <div>Basic Requirement = {raw.basicRequiredAgents?.toFixed(2) || 'N/A'}</div>
-              <div>Erlang-C Requirement = {raw.erlangRequiredAgents?.toFixed(2) || 'N/A'}</div>
-              <div className="font-medium mt-2">Calculation:</div>
-              <div>= {value}</div>
+              <div className="font-medium">Step-by-step:</div>
+              <div>1. Total Volume = {raw.totalVolume?.toFixed(2) || 'N/A'} calls</div>
+              <div>2. AHT = {raw.avgAHT?.toFixed(2) || 'N/A'} seconds</div>
+              <div>3. Raw Staff Hours = {raw.totalVolume?.toFixed(2) || 'N/A'} × {raw.avgAHT?.toFixed(2) || 'N/A'} ÷ 3600 = {raw.rawStaffHours?.toFixed(2) || 'N/A'}</div>
+              <div>4. Shrinkage Factors:</div>
+              <div>   - Out of Office: {raw.outOfOfficeShrinkage || 'N/A'}% = {((100 - (raw.outOfOfficeShrinkage || 0))/100).toFixed(2)}</div>
+              <div>   - In Office: {raw.inOfficeShrinkage || 'N/A'}% = {((100 - (raw.inOfficeShrinkage || 0))/100).toFixed(2)}</div>
+              <div>   - Billable Break: {raw.billableBreak || 'N/A'}% = {((100 - (raw.billableBreak || 0))/100).toFixed(2)}</div>
+              <div>5. Agent Work Hours = 0.5 × {((100 - (raw.outOfOfficeShrinkage || 0))/100).toFixed(2)} × {((100 - (raw.inOfficeShrinkage || 0))/100).toFixed(2)} × {((100 - (raw.billableBreak || 0))/100).toFixed(2)} = {raw.agentWorkHours?.toFixed(2) || 'N/A'}</div>
+              <div className="font-medium mt-2">Final Calculation:</div>
+              <div>Required = {raw.rawStaffHours?.toFixed(2) || 'N/A'} ÷ {raw.agentWorkHours?.toFixed(2) || 'N/A'} = {value}</div>
             </div>
           </div>
         );
