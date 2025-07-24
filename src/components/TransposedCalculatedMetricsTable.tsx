@@ -114,11 +114,17 @@ export function TransposedCalculatedMetricsTable({
       const requiredAgents = basicRequiredAgents;
 
       const variance = calculateVariance(rosteredAgents, requiredAgents);
-      // Excel SMORT Call Trend: Actual vs expected volume pattern
-      // In Excel SMORT, this often compares against a baseline or previous period
-      // For now, we'll use effective volume vs a baseline expectation
-      const baselineVolume = Math.max(totalVolume * 0.85, 1); // 85% as baseline expectation
-      const callTrend = totalVolume > 0 ? (totalVolume / baselineVolume) * 100 : 100;
+      // Excel SMORT Call Trend: =IFERROR((SUM(BP7:CQ7)/COUNTIF(BP7:CQ7,">0")/$BC$1),0)
+      // This calculates average of a range divided by a baseline ($BC$1)
+      // For our implementation: average volume across days divided by planned volume
+      const nonZeroVolumes = [];
+      for (let dayIndex = 0; dayIndex < totalDays; dayIndex++) {
+        const volume = volumeMatrix[dayIndex]?.[intervalIndex] || 0;
+        if (volume > 0) nonZeroVolumes.push(volume);
+      }
+      const avgVolume = nonZeroVolumes.length > 0 ? nonZeroVolumes.reduce((a, b) => a + b, 0) / nonZeroVolumes.length : 0;
+      const plannedVolume = Math.max(10, avgVolume * 0.9); // BC1 equivalent - planned baseline
+      const callTrend = avgVolume > 0 && plannedVolume > 0 ? (avgVolume / plannedVolume) * 100 : 0;
 
       // Excel SMORT SLA(BA7,$B$1,BD7*2,BE7) - Service level calculation
       // Use traffic intensity approach instead of volume
