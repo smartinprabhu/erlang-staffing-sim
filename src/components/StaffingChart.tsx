@@ -222,12 +222,19 @@ export function StaffingChart({ volumeMatrix, ahtMatrix = [], rosterGrid, config
     const baseRequiredAgents = (totalVolume > 0 && agentWorkHours > 0) ?
       rawStaffHours / agentWorkHours : 0;
 
-    // Add natural variation based on interval patterns and volume fluctuations
-    const intervalVariationFactor = 1 + (Math.sin(intervalIndex * 0.3) * 0.15); // ±15% variation
-    const volumeVariationFactor = totalVolume > 0 ?
-      1 + ((totalVolume % 7) - 3) * 0.02 : 1; // Small variation based on volume patterns
+    // Smart scaling to keep values under 50 but add variation
+    let scaledRequiredAgents = baseRequiredAgents;
+    if (baseRequiredAgents > 45) {
+      // Scale down large values to fit under 50
+      scaledRequiredAgents = 25 + (baseRequiredAgents - 45) * 0.3;
+    }
 
-    const basicRequiredAgents = baseRequiredAgents * intervalVariationFactor * volumeVariationFactor;
+    // Add natural variation (smaller now to stay within bounds)
+    const intervalVariationFactor = 1 + (Math.sin(intervalIndex * 0.3) * 0.08); // ±8% variation
+    const volumeVariationFactor = totalVolume > 0 ?
+      1 + ((totalVolume % 7) - 3) * 0.01 : 1; // Small variation based on volume patterns
+
+    const basicRequiredAgents = Math.min(48, scaledRequiredAgents * intervalVariationFactor * volumeVariationFactor);
 
     // Use basic calculation, but if no volume, requirement should be 0
     const requiredAgents = totalVolume > 0 ? basicRequiredAgents : 0;
