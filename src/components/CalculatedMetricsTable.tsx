@@ -257,13 +257,10 @@ export function CalculatedMetricsTable({
                             
                             <div className="font-medium mt-2">Calculation:</div>
                             <div>
-                              {(metric.actual / 
-                                ((1 - configData.outOfOfficeShrinkage/100) * 
-                                (1 - configData.inOfficeShrinkage/100) * 
-                                (1 - configData.billableBreak/100))).toFixed(2)}
-                              Ã— {(1 - configData.outOfOfficeShrinkage/100).toFixed(2)} 
-                              Ã— {(1 - configData.inOfficeShrinkage/100).toFixed(2)} 
-                              Ã— {(1 - configData.billableBreak/100).toFixed(2)}
+                              {metric.raw.rawRosteredAgents.toFixed(2)}
+                              × {(1 - configData.outOfOfficeShrinkage/100).toFixed(2)}
+                              × {(1 - configData.inOfficeShrinkage/100).toFixed(2)}
+                              × {(1 - configData.billableBreak/100).toFixed(2)}
                             </div>
                             <div>
                               = {(metric.actual / 
