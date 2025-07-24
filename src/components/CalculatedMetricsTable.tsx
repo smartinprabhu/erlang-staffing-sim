@@ -224,7 +224,7 @@ export function CalculatedMetricsTable({
                           <div className="font-semibold mb-1">Actual Agents Calculation</div>
                           <div className="mb-1">Formula:</div>
                           <code className="block bg-muted p-1 rounded mb-2">
-                            Actual = Raw Agents × (1 - OutOfOfficeShrinkage) × (1 - InOfficeShrinkage) × (1 - BillableBreak)
+                            Actual = Raw Agents Ã— (1 - OutOfOfficeShrinkage) Ã— (1 - InOfficeShrinkage) Ã— (1 - BillableBreak)
                           </code>
                           
                           <div className="text-xs space-y-1 mt-2">
@@ -243,18 +243,18 @@ export function CalculatedMetricsTable({
                                 ((1 - configData.outOfOfficeShrinkage/100) * 
                                 (1 - configData.inOfficeShrinkage/100) * 
                                 (1 - configData.billableBreak/100))).toFixed(2)}
-                              × {(1 - configData.outOfOfficeShrinkage/100).toFixed(2)} 
-                              × {(1 - configData.inOfficeShrinkage/100).toFixed(2)} 
-                              × {(1 - configData.billableBreak/100).toFixed(2)}
+                              Ã— {(1 - configData.outOfOfficeShrinkage/100).toFixed(2)} 
+                              Ã— {(1 - configData.inOfficeShrinkage/100).toFixed(2)} 
+                              Ã— {(1 - configData.billableBreak/100).toFixed(2)}
                             </div>
                             <div>
                               = {(metric.actual / 
                                 ((1 - configData.outOfOfficeShrinkage/100) * 
                                 (1 - configData.inOfficeShrinkage/100) * 
                                 (1 - configData.billableBreak/100))).toFixed(2)}
-                              × {(1 - configData.outOfOfficeShrinkage/100).toFixed(2)} 
-                              × {(1 - configData.inOfficeShrinkage/100).toFixed(2)} 
-                              × {(1 - configData.billableBreak/100).toFixed(2)}
+                              Ã— {(1 - configData.outOfOfficeShrinkage/100).toFixed(2)} 
+                              Ã— {(1 - configData.inOfficeShrinkage/100).toFixed(2)} 
+                              Ã— {(1 - configData.billableBreak/100).toFixed(2)}
                             </div>
                             <div>= {metric.actual.toFixed(2)}</div>
                           </div>

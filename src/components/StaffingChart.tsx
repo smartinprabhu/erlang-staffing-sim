@@ -35,7 +35,7 @@ export function StaffingChart({ volumeMatrix, ahtMatrix = [], rosterGrid, config
   
   // Generate time intervals exactly as Excel SMORT (48 intervals starting from 12:30 AM to 12:00 AM)
   const intervals = Array.from({ length: 48 }, (_, i) => {
-    const totalMinutes = (i * 30) + 30;
+    const totalMinutes = (i * 30);
     const hour = Math.floor(totalMinutes / 60) % 24;
     const minute = totalMinutes % 60;
     
@@ -223,7 +223,7 @@ export function StaffingChart({ volumeMatrix, ahtMatrix = [], rosterGrid, config
 
   // Generate chart data for all 48 intervals with gap visualization
   const chartData = Array.from({ length: 48 }, (_, i) => {
-    const totalMinutes = (i * 30) + 30;
+    const totalMinutes = (i * 30);
     const hour = Math.floor(totalMinutes / 60) % 24;
     const minute = totalMinutes % 60;
     const timeLabel = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
@@ -247,7 +247,7 @@ export function StaffingChart({ volumeMatrix, ahtMatrix = [], rosterGrid, config
     <Card className="mb-8">
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
-          <CardTitle>Live Interactive Chart: Actual vs Required </CardTitle>
+          <CardTitle className="text-md font-semibold text-foreground">Live Interactive Chart: Actual vs Required </CardTitle>
           <p className="text-sm text-muted-foreground">
             All 48 intervals aligned vertically - Chart updates dynamically using exact Excel formulas
           </p>

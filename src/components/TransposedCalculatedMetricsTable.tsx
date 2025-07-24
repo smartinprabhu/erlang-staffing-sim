@@ -46,7 +46,7 @@ export function TransposedCalculatedMetricsTable({
     }, 0) || 1;
 
     for (let intervalIndex = 0; intervalIndex < 48; intervalIndex++) {
-      const totalMinutes = (intervalIndex * 30) + 30;
+      const totalMinutes = (intervalIndex * 30);
       const hour = Math.floor(totalMinutes / 60) % 24;
       const minute = totalMinutes % 60;
 
@@ -183,7 +183,7 @@ export function TransposedCalculatedMetricsTable({
           <div className="text-sm">
             <div className="font-semibold mb-1">Actual Agents Calculation</div>
             <code className="block bg-muted p-1 rounded mb-2 text-xs">
-              Actual = Raw Agents × (1 - OOO Shrinkage) × (1 - IO Shrinkage) × (1 - Billable Break)
+              Actual = Raw Agents Ã— (1 - OOO Shrinkage) Ã— (1 - IO Shrinkage) Ã— (1 - Billable Break)
             </code>
             <div className="text-xs space-y-1 mt-2">
               <div>Raw Agents = {raw.rawRosteredAgents.toFixed(2)}</div>
@@ -326,9 +326,9 @@ export function TransposedCalculatedMetricsTable({
     <table className="w-full border-collapse text-sm">
       <thead className="sticky top-[-1px] bg-card z-10">
         <tr>
-          <th className="border border-border p-2 text-left min-w-28 bg-[#475569] font-medium sticky left-0 z-20" style={{ minWidth: '112px' }}>Metric</th>
+          <th className="border border-border p-2 text-left min-w-28 bg-[#475569]  text-white font-medium sticky left-0 z-20" style={{ minWidth: '112px' }}>Metric</th>
           {metrics.map((metric, index) => (
-            <th key={index} className="border border-border p-2 text-center bg-[#475569] font-medium" style={{ width: '50px' }}>
+            <th key={index} className="border border-border p-2 text-center bg-[#475569]  text-white font-medium" style={{ width: '50px' }}>
               {metric.time}
             </th>
           ))}
@@ -337,7 +337,7 @@ export function TransposedCalculatedMetricsTable({
       <tbody>
         {metricTypes.map((metricType, rowIndex) => (
           <tr key={rowIndex} className="hover:bg-muted/50">
-            <td className="border border-border p-2 font-medium bg-[#475569] sticky left-0 z-10" style={{ minWidth: '112px' }}>
+            <td className="border border-border p-2 font-medium bg-[#475569]  text-white sticky left-0 z-10" style={{ minWidth: '112px' }}>
               {metricType.label}
             </td>
             {metrics.map((metric, colIndex) => {

@@ -22,7 +22,7 @@ export function AHTTable({
   // Generate time intervals exactly as Excel SMORT (48 intervals starting from 12:30 AM to 12:00 AM)
   const intervals = Array.from({ length: 48 }, (_, i) => {
     // Excel starts at 12:30 AM (0:30), so we add 30 minutes to the base calculation
-    const totalMinutes = (i * 30) + 30; // Start from 30 minutes (12:30 AM)
+    const totalMinutes = (i * 30); // Start from 30 minutes (12:30 AM)
     const hour = Math.floor(totalMinutes / 60) % 24; // Wrap around at 24 hours
     const minute = totalMinutes % 60;
     
@@ -92,11 +92,11 @@ export function AHTTable({
     <Card className="mt-4">
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-lg">
+          <CardTitle className="flex items-center gap-2 text-md font-semibold text-foreground">
             <Clock className="h-5 w-5" />
             AHT (Average Handle Time)
           </CardTitle>
-          <div className="flex gap-2">
+          { /* <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={loadSampleData} className="text-xs">
               <Upload className="h-3 w-3 mr-2" />
               Load Sample
@@ -105,7 +105,7 @@ export function AHTTable({
               <RotateCcw className="h-3 w-3 mr-2" />
               Clear
             </Button>
-          </div>
+          </div> */ }
         </div>
         <p className="text-xs text-muted-foreground">
           Enter Average Handle Time values in seconds for each interval.

@@ -74,7 +74,7 @@ export function EnhancedRosterGrid({
   // Generate time intervals exactly as Excel SMORT (48 intervals starting from 12:30 AM to 12:00 AM)
   const intervals = Array.from({ length: 48 }, (_, i) => {
     // Excel starts at 12:30 AM (0:30), so we add 30 minutes to the base calculation
-    const totalMinutes = (i * 30) + 30; // Start from 30 minutes (12:30 AM)
+    const totalMinutes = (i * 30); // Start from 30 minutes (12:30 AM)
     const hour = Math.floor(totalMinutes / 60) % 24; // Wrap around at 24 hours
     const minute = totalMinutes % 60;
     
@@ -195,14 +195,10 @@ export function EnhancedRosterGrid({
     <Card className="mb-8">
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-md font-semibold text-foreground">
             <Users className="h-5 w-5" />
             Roster Schedule Grid
           </CardTitle>
-          <Button variant="outline" size="sm" onClick={clearRoster}>
-            <RotateCcw className="h-4 w-4 mr-2" />
-            Clear
-          </Button>
         </div>
         <div className="text-sm text-muted-foreground">
           <p> Roster Grid: 48 intervals (12:30 AM to 12:00 AM) on both X and Y axes</p>
@@ -230,7 +226,7 @@ export function EnhancedRosterGrid({
               
               {/* Shift row - exactly as Excel */}
               <tr className="bg-[#475569]/20">
-                <td className="sticky left-0 border border-border p-1 text-center font-medium text-xs bg-[#475569] z-20">
+                <td className="sticky left-0 border border-border text-white p-1 text-center font-medium text-xs bg-[#475569] z-20">
                   Shift
                 </td>
                 {intervals.map((_, i) => (
@@ -250,7 +246,7 @@ export function EnhancedRosterGrid({
               
               {/* Roster row - exactly as Excel */}
               <tr className="bg-[#475569]/70">
-                <td className="sticky left-0 border border-border p-1 text-center font-medium text-xs bg-[#475569] z-20">
+                <td className="sticky left-0 border border-border text-white p-1 text-center font-medium text-xs bg-[#475569] z-20">
                   Roster
                 </td>
                 {intervals.map((_, i) => (
@@ -325,15 +321,15 @@ export function EnhancedRosterGrid({
             </div>
             <div>
               <h4 className="font-medium mb-2">Intersection Logic:</h4>
-              <p>• Roster value fills only where X=Y axes match</p>
-              <p>• Fills downward for Shift count intervals</p>
-              <p>• Example: 5:00 roster fills 5:00→6:00 vertically</p>
+              <p>â€¢ Roster value fills only where X=Y axes match</p>
+              <p>â€¢ Fills downward for Shift count intervals</p>
+              <p>â€¢ Example: 5:00 roster fills 5:00â†’6:00 vertically</p>
             </div>
             <div>
               <h4 className="font-medium mb-2">Visual Indicators:</h4>
-              <p>• Green = Roster-filled cells</p>
-              <p>• Blue = Manually entered cells</p>
-              <p>• Empty = No agents assigned</p>
+              <p>â€¢ Green = Roster-filled cells</p>
+              <p>â€¢ Blue = Manually entered cells</p>
+              <p>â€¢ Empty = No agents assigned</p>
             </div>
           </div>
         </div>
