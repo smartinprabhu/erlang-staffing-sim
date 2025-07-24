@@ -6,6 +6,7 @@ import {
   calculateRequiredAgents,
   calculateVariance,
   calculateSLA,
+  calculateSLAWithTraffic,
   calculateOccupancy,
   calculateInflux,
   calculateAgentDistributionRatio,
