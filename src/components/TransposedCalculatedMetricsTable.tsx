@@ -71,7 +71,9 @@ export function TransposedCalculatedMetricsTable({
         }
       }
 
-      const avgAHT = validDays > 0 ? totalAHT / validDays : configData.plannedAHT;
+      // Excel SMORT AHT: =IF(BD7=0,0,$BE$6)
+      // If traffic intensity is 0, return 0, otherwise return planned AHT (BE6)
+      const avgAHT = totalVolume > 0 ? (validDays > 0 ? totalAHT / validDays : configData.plannedAHT) : 0;
 
       const rawRosteredAgents = rosterGrid[intervalIndex] ?
         rosterGrid[intervalIndex].reduce((sum, value) => sum + (parseInt(value) || 0), 0) : 0;
