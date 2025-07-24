@@ -10,7 +10,9 @@ import {
   calculateSLA,
   calculateOccupancy,
   erlangAgents,
-  erlangUtilization
+  erlangUtilization,
+  calculateStaffHours,
+  calculateAgentWorkHours
 } from "@/lib/erlang";
 
 import { Button } from "@/components/ui/button";
