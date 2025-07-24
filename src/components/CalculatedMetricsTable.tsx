@@ -133,9 +133,9 @@ export function CalculatedMetricsTable({
       const serviceLevel = rosteredAgents > 0 ?
         calculateSLAWithTraffic(trafficIntensityDoubled, configData.serviceTime, rosteredAgents, avgAHT) * 100 : 0;
       
-      // 6. Occupancy: traffic intensity vs available agents
+      // 6. Excel SMORT Utilisation(BA7,BD7*2,BE7) - Occupancy calculation
       const occupancy = rosteredAgents > 0 ?
-        (trafficIntensity / rosteredAgents) * 100 : 0;
+        (trafficIntensityDoubled / rosteredAgents) * 100 : 0;
       
       // 7. Influx = Calls per hour (Volume / 0.5 hours)
       const influx = calculateInflux(effectiveVolume, 0.5);
