@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -53,11 +52,11 @@ export function ForecastVolumeTable({
         const hour = Math.floor(i / 2);
         // Peak hours 9AM-5PM get higher volume
         if (hour >= 9 && hour <= 17) {
-          return Math.floor(Math.random() * 50) + 30;
+          return Math.floor(Math.random() * 6) + 8; // 8-14 calls
         } else if (hour >= 6 && hour <= 22) {
-          return Math.floor(Math.random() * 20) + 10;
+          return Math.floor(Math.random() * 4) + 3; // 3-7 calls
         }
-        return Math.floor(Math.random() * 5);
+        return Math.floor(Math.random() * 2) + 1; // 1-3 calls
       })
     );
     onVolumeMatrixChange(sampleData);
