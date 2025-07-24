@@ -267,15 +267,21 @@ export function TransposedCalculatedMetricsTable({
       case 'callTrend':
         return (
           <div className="text-sm">
-            <div className="font-semibold mb-1">Call Trend Calculation</div>
+            <div className="font-semibold mb-1">Call Trend Calculation (Shrinkage Impact)</div>
             <code className="block bg-muted p-1 rounded mb-2 text-xs">
-              Trend = (Effective Volume / Total Volume) * 100 (Shrinkage Impact)
+              Trend = (Effective Volume ÷ Total Volume) × 100
             </code>
             <div className="text-xs space-y-1 mt-2">
-              <div>Effective Volume = {raw.effectiveVolume.toFixed(2)}</div>
-              <div>Total Volume = {raw.totalVolume.toFixed(2)}</div>
-              <div className="font-medium mt-2">Calculation:</div>
-              <div>= {value}%</div>
+              <div className="font-medium">Step-by-step:</div>
+              <div>1. Total Volume = {raw.totalVolume?.toFixed(2) || 'N/A'} calls</div>
+              <div>2. Shrinkage Factors Applied:</div>
+              <div>   - Out of Office: {raw.outOfOfficeShrinkage || 'N/A'}%</div>
+              <div>   - In Office: {raw.inOfficeShrinkage || 'N/A'}%</div>
+              <div>   - Billable Break: {raw.billableBreak || 'N/A'}%</div>
+              <div>3. Effective Volume = {raw.totalVolume?.toFixed(2) || 'N/A'} × {((100 - (raw.outOfOfficeShrinkage || 0))/100).toFixed(2)} × {((100 - (raw.inOfficeShrinkage || 0))/100).toFixed(2)} × {((100 - (raw.billableBreak || 0))/100).toFixed(2)} = {raw.effectiveVolume?.toFixed(2) || 'N/A'}</div>
+              <div className="font-medium mt-2">Final Calculation:</div>
+              <div>Call Trend = ({raw.effectiveVolume?.toFixed(2) || 'N/A'} ÷ {raw.totalVolume?.toFixed(2) || 'N/A'}) × 100 = {value}%</div>
+              <div className="text-xs mt-1 italic">Shows how much effective capacity remains after shrinkage</div>
             </div>
           </div>
         );
