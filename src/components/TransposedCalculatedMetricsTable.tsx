@@ -114,8 +114,11 @@ export function TransposedCalculatedMetricsTable({
       const requiredAgents = basicRequiredAgents;
 
       const variance = calculateVariance(rosteredAgents, requiredAgents);
-      // Call trend: shows shrinkage impact
-      const callTrend = calculateCallTrendShrinkage(effectiveVolume, totalVolume);
+      // Excel SMORT Call Trend: Actual vs expected volume pattern
+      // In Excel SMORT, this often compares against a baseline or previous period
+      // For now, we'll use effective volume vs a baseline expectation
+      const baselineVolume = Math.max(totalVolume * 0.85, 1); // 85% as baseline expectation
+      const callTrend = totalVolume > 0 ? (totalVolume / baselineVolume) * 100 : 100;
 
       // Excel SMORT SLA(BA7,$B$1,BD7*2,BE7) - Service level calculation
       // Use traffic intensity approach instead of volume
