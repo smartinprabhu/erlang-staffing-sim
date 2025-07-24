@@ -30,11 +30,11 @@ const generateSampleVolumeData = (totalDays: number): number[][] => {
       let baseVolume = 0;
       
       if (hour >= 8 && hour <= 18) {
-        baseVolume = 50 + Math.floor(Math.random() * 30); // Business hours: 50-80
+        baseVolume = 8 + Math.floor(Math.random() * 6); // Business hours: 8-14 calls
       } else if (hour >= 6 && hour <= 22) {
-        baseVolume = 20 + Math.floor(Math.random() * 20); // Extended hours: 20-40
+        baseVolume = 3 + Math.floor(Math.random() * 4); // Extended hours: 3-7 calls
       } else {
-        baseVolume = 5 + Math.floor(Math.random() * 10); // Night hours: 5-15
+        baseVolume = 1 + Math.floor(Math.random() * 2); // Night hours: 1-3 calls
       }
       
       dayVolumes.push(baseVolume);
