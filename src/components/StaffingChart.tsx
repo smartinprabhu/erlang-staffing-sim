@@ -236,9 +236,9 @@ export function StaffingChart({ volumeMatrix, ahtMatrix = [], rosterGrid, config
     const variance = calculateVariance(rosteredAgents, requiredAgents);
 
     return {
-      actual: Math.round(rosteredAgents * 10) / 10,
-      requirement: Math.round(requiredAgents * 10) / 10,
-      variance: Math.round(variance * 10) / 10,
+      actual: Math.round(rosteredAgents),
+      requirement: Math.round(requiredAgents),
+      variance: Math.round(variance),
       gap: Math.abs(rosteredAgents - requiredAgents)
     };
   };
