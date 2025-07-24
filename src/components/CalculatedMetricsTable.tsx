@@ -109,8 +109,8 @@ export function CalculatedMetricsTable({
         configData.billableBreak
       );
 
-      // Basic requirement: Raw staff hours / adjusted agent work hours
-      const basicRequiredAgents = agentWorkHours > 0 ? rawStaffHours / agentWorkHours : 0;
+      // Basic requirement: Raw staff hours / adjusted agent work hours (capped for reasonableness)
+      const basicRequiredAgents = agentWorkHours > 0 ? Math.min(50, rawStaffHours / agentWorkHours) : 0;
 
       // Excel SMORT BD7*2 pattern: Traffic intensity calculation
       const trafficIntensityBase = (effectiveVolume * avgAHT) / 3600; // BD7 in Erlangs
@@ -118,10 +118,10 @@ export function CalculatedMetricsTable({
       const trafficIntensityDoubled = trafficIntensityBase * 2; // BD7*2 for Excel functions
 
       const erlangRequiredAgents = effectiveVolume > 0 ?
-        erlangAgents(configData.slaTarget / 100, configData.serviceTime, trafficIntensityDoubled, avgAHT) : 0;
+        Math.min(50, erlangAgents(configData.slaTarget / 100, configData.serviceTime, trafficIntensityDoubled, avgAHT)) : 0;
 
-      // Use basic calculation as primary
-      const requiredAgents = basicRequiredAgents;
+      // Use the lower of basic calculation and Erlang-C, capped at 100
+      const requiredAgents = Math.min(100, Math.max(basicRequiredAgents, erlangRequiredAgents));
       
       // 3. Variance (BC7): POWER((BA7-BB7),2) - Actually it's just the difference
       const variance = calculateVariance(rosteredAgents, requiredAgents);
