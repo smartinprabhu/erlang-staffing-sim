@@ -161,7 +161,9 @@ export function TransposedCalculatedMetricsTable({
             requiredAgents,
             basicRequiredAgents,
             erlangRequiredAgents,
-            baselineVolume,
+            plannedVolume,
+            avgVolume,
+            nonZeroVolumes,
             rosteredAgents,
             rawRosteredAgents,
             totalAgents,
@@ -235,7 +237,7 @@ export function TransposedCalculatedMetricsTable({
           <div className="text-sm">
             <div className="font-semibold mb-1">Actual Agents Calculation</div>
             <code className="block bg-muted p-1 rounded mb-2 text-xs">
-              Actual = Raw Agents × (1 - OOO) × (1 - IO) × (1 - BB)
+              Actual = Raw Agents �� (1 - OOO) × (1 - IO) × (1 - BB)
             </code>
             <div className="text-xs space-y-1 mt-2">
               <div className="font-medium">Step-by-step:</div>
