@@ -11,7 +11,10 @@ import {
   calculateAgentDistributionRatio,
   erlangAgents,
   erlangUtilization,
-  calculateCallTrend
+  calculateCallTrend,
+  calculateCallTrendShrinkage,
+  calculateStaffHours,
+  calculateAgentWorkHours
 } from "@/lib/erlang";
 
 interface CalculatedMetricsTableProps {
